@@ -1,6 +1,7 @@
 (function($) {
 
     var root = this;
+    
     function cHE() {
 
         var self = this;                ///< An alias to this
@@ -50,7 +51,7 @@
             }
             return setAttributes(html, moreattrs).outerHTML;
         };
-        
+
         /**
          * Genereate an input element
          * @param {string} id The id of the input. If not manually set, this will also become the name of the input
@@ -60,7 +61,7 @@
          * @param {object(plain)} moreattrs More attributes to apply to the input
          * @returns {html}
          */
-        this.getInput = function (id, value, cssclass, type, moreattrs) {
+        this.getInput = function(id, value, cssclass, type, moreattrs) {
             if (!is_object(moreattrs)) {
                 moreattrs = {};
             }
@@ -71,7 +72,7 @@
                 // Do not overwrite the name attribute if it has been specified manually
                 moreattrs.name = id;
             }
-            moreattrs.type = type ? type: 'text';
+            moreattrs.type = type ? type : 'text';
             return self.getHtml('input', null, id, cssclass, moreattrs);
         };
 
@@ -171,7 +172,7 @@
         this.getDiv = function(body, id, cssclass, moreattrs) {
             return self.getHtml('div', body, id, cssclass, moreattrs);
         };
-        
+
         /**
          * Set the custom attributes
          * @param {object(DOMElement)} obj
@@ -195,8 +196,9 @@
         }
 
     }
-    // @TODO REWRITE cHE
+// @TODO REWRITE cHE
     cHE = new cHE();
+    
     this.const = {
         PACKAGE_FILTERS: '/ajaxstreamfilter.js',
         PACKAGE_VIEWPORT: '/ajaxstreamviewport.js',
@@ -342,7 +344,6 @@
             top += drawViewPort();
             top += drawUploader();
             var outtext = cHE.getDiv(top, 'AJSMain');
-            
             return outtext;
         }
         
@@ -354,7 +355,7 @@
         function drawImagePreview() {
 //            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
 //            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
-            var outtext = drawActionBar() + cHE.getDiv(
+            var outtext = drawActionBar() + cHE.getHtml('img', null, 'AJSUploadPreview') + cHE.getDiv(
                 cHE.getSpan(null, 'AJSL', 'AJSLR asicons-arrow-left') + 
                 cHE.getSpan(null, 'AJSR', 'AJSLR asicons-arrow-right'), 'AJSLRContainer'
             );
@@ -496,40 +497,42 @@
                 self.loaded = 0;
                 self.toload = filelist.length;
 
-                // @todo Implement FALLBACK
-
-                // Event handler
-                self.cse = callSelfEvent('onfileselected', undefined, {
-                    files: filelist,
-                    length: filelist.length,
-                    jqueryEvent: e,
-                    originalEvent: e.originalEvent
-                });
-                if (self.cse === false) {
-                    return;
-                }
-
-                $('#AJSChooseText').addClass('AJSHidden');
-                $('#AJSLoading').removeClass('AJSHidden');
-
-                if (self.changingindex === false) {
-                    var len = filelist.length;
-                    var tlen = len + self.uploads.length;
-                    if (tlen > self.opts.maxFiles) {
-                        console.warn(tx('You have selected {0} files but are only permitted to upload {1}', tlen, self.opts.maxFiles));
-                        len = self.toload = self.opts.maxFiles - self.uploads.length;
+                if (browserCanDo('fileapi')) {
+                    // Event handler
+                    self.cse = callSelfEvent('onfileselected', undefined, {
+                        files: filelist,
+                        length: filelist.length,
+                        jqueryEvent: e,
+                        originalEvent: e.originalEvent
+                    });
+                    if (self.cse === false) {
+                        return;
                     }
-                    for (var i = 0; i < len; i++) {
-                        setDataFromFile(filelist[i], i);
+
+                    $('#AJSChooseText').addClass('AJSHidden');
+                    $('#AJSLoading').removeClass('AJSHidden');
+
+                    if (self.changingindex === false) {
+                        var len = filelist.length;
+                        var tlen = len + self.uploads.length;
+                        if (tlen > self.opts.maxFiles) {
+                            console.warn(tx('You have selected {0} files but are only permitted to upload {1}', tlen, self.opts.maxFiles));
+                            len = self.toload = self.opts.maxFiles - self.uploads.length;
+                        }
+                        for (var i = 0; i < len; i++) {
+                            setDataFromFile(filelist[i], i);
+                        }
+                    } else {
+                        // The user has changed one file
+                        callSelfEvent('onfilechanging', e.target, {
+                            old: self.uploads[self.changingindex], 
+                            target: e.target, 
+                            pseudoTarget: inputs[self.id]
+                        });
+                        setDataFromFile(filelist[0], self.changingindex, e.target, true);
                     }
                 } else {
-                    // The user has changed one file
-                    callSelfEvent('onfilechanging', e.target, {
-                        old: self.uploads[self.changingindex], 
-                        target: e.target, 
-                        pseudoTarget: inputs[self.id]
-                    });
-                    setDataFromFile(filelist[0], self.changingindex, e.target, true);
+                    
                 }
             };
             
@@ -696,20 +699,17 @@
                 target: target, 
                 pseudoTarget: inputs[self.id]
             });
-            attemptProgression(filedata, target);
+            attemptProgression(target);
         }
         
         /**
          * Keep attempting to progress until all files have loaded, at which point it is okay to progress
-         * @param {object(plain)} filedata
          * @param {object(DOMElement)} target The original target, i.e. the file input
          */
-        function attemptProgression(filedata, target) {
+        function attemptProgression(target) {
             self.loaded++;
-            $(cHE.getHtml('img', null, 'AJSUploadPreview' + filedata.index,
-                    'AJSUploadPreview')).insertBefore($('#AJSPreviewActions'));
             if (self.loaded === self.toload) {
-                var ajslrc = $('#AJSLRContainer')
+                var ajslrc = $('#AJSLRContainer');
                 callSelfEvent('onfilesloaded', target, {total: self.toload, loaded: self.loaded + 1, pseudoTarget: inputs[self.id]});
                 $('#AJS_' + self.id).val(json_encode(self.uploads));
                 $('#AJSUploadSection').addClass('AJSHidden');
@@ -741,10 +741,9 @@
                     src = getIconImagePath(cur.mimetype);
                     ajsc.addClass('AJSHidden');
                 }
-                var img = elem('AJSUploadPreview' + cur.index);
+                var img = elem('AJSUploadPreview');
                 img.src = src;
-                $('.AJSUploadPreview').addClass('AJSTransparent');//.removeClass('AJSOpaque');
-                $('#AJSUploadPreview' + cur.index).removeClass('AJSTransparent');//.addClass('AJSOpaque');
+                $('#AJSUploadPreview').removeClass('AJSTransparent');//.addClass('AJSOpaque');
             } else {
                 resetToUpload();
             }
@@ -833,6 +832,15 @@
          * Construct this object
          */
         var __construct = (function() {
+            if (!browserCanDo('fileapi')) {
+                var s = document.createElement('script');
+                s.type = 'text/javascript';
+                s.src = 'ajaxstreamlegacy.js';
+                s.onload = function () {
+                    window['ajaxStreamLegacy'] = new ajaxStreamLegacy(cHE);
+                };
+                reset(document.getElementsByTagName('head')).appendChild(s);
+            }
             callSelfEvent('oninit');
             draw();
             analyseOptions(self.opts);
@@ -1157,7 +1165,8 @@
             case 'blob':
                 return Boolean(window.Blob);
             case 'fileapi':
-                return !Boolean(window.Blob || window.File || window.FileList || window.FileReader);
+                return false;
+//                return !Boolean(window.Blob || window.File || window.FileList || window.FileReader);
             case 'drag':
                 return ('draggable' in document.createElement('span'));
             case 'formdata':
