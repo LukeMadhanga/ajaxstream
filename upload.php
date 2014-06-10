@@ -4,44 +4,72 @@ cAjaxStream::processUpload();
 
 class cAjaxStream {
     
-    static $uploaddir = 'uploads/';
+    static $settings;
     static $starttime;
     
     const MAX_FILENAME_LENGTH = 120;
     
     static function processUpload () {
         self::$starttime = time();
-        $islegacy = (boolean) filter_input(INPUT_POST, 'AJSLegacy');
+        self::$settings = $settings = json_decode(filter_input(INPUT_POST, 'AJSLegacy'));
         $file = (object) $_FILES['AJSFileLegacy'];
-        if ($islegacy) {
+        if ($settings->islegacy) {
             self::handleLegacy($file);
         }
     }
     
     static function handleLegacy($file) {
-        $namebits = explode('.', $file->name);
-        $extpos = count($namebits) - 1;
-        $ext = $namebits[$extpos];
-        unset($namebits[$extpos]);
-        $filename = self::sanitiseFilename(implode('.', $namebits));
-        $fileloc = __DIR__ . '/' . self::$uploaddir . self::$starttime . "-{$filename}.{$ext}";
-        $error = null;
-        $moved = move_uploaded_file($file->tmp_name, $fileloc);
-        if (!$moved) {
-            $error = error_get_last();
+        $filename = self::sanitiseFilename($file->name);
+        $fileloc = self::determineDestination($filename);
+        try {
+            $filepath = self::getFileURL($fileloc);
+            $error = null;
+            $moved = move_uploaded_file($file->tmp_name, $fileloc);
+            if (!$moved) {
+                $lasterror = error_get_last();
+                $error = $lasterror['message'];
+            }
+            if (preg_match("/image\/*/", $file->type)) {
+                $imagedata = getimagesize($fileloc);
+                if ($imagedata) {
+                    // Resize etc.
+                }
+            }
+            $result = json_encode(array('location' => $filepath, 'moved' => $moved, 'error' => $error, 'type' => $file->type));
+        } catch (Exception $ex) {
+            $result = json_encode(array('moved' => false, 'error' => $ex->getMessage()));
         }
-        $result = json_encode(array('location' => $fileloc, 'moved' => $moved, 'error' => $error));
         header('Content-Type:text/html; charset=utf-8');
         echo <<<JS
 <script type='text/javascript'>
-    console.dir(window.parent.ajaxStreamLegacy);
     window.parent.ajaxStreamLegacy.afterUpload($result);
 </script>            
 JS;
         exit;
     }
     
-    static function cleanDir() {
+    /**
+     * Determine the destination path for the uploaded file
+     * @param string $filename The file name
+     * @return string The destination path
+     */
+    private static function determineDestination ($filename) {
+        $uploaddir = self::$settings->uploaddir;
+        if (!preg_match("/\/$/", $uploaddir)) {
+            // The upload dir requires a '/' at the end
+            $uploaddir = self::$settings->uploaddir = "{$uploaddir}/";
+        }
+        if (substr($uploaddir, 0, 1) === '/') {
+            $uploaddir = self::$settings->uploaddir = substr($uploaddir, 0);
+        }
+        return filter_input(INPUT_SERVER, 'DOCUMENT_ROOT') . "/$uploaddir" . self::$starttime . "-{$filename}";
+    }
+    
+    private static function getFileURL($path) {
+        return str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $path);
+    }
+    
+    private static function cleanDir() {
         
     }
     

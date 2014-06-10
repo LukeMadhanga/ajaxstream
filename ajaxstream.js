@@ -244,7 +244,7 @@
             }
             return s;
         },
-        uploadScript: "/upload.php",
+        uploadScript: "upload.php",
         uploadTo: "uploads",
         uploadWithForm: false,
         useViewport: false,
@@ -499,7 +499,7 @@
 
                 if (browserCanDo('fileapi')) {
                     // Event handler
-                    self.cse = callSelfEvent('onfileselected', undefined, {
+                    self.cse = self.callSelfEvent('onfileselected', undefined, {
                         files: filelist,
                         length: filelist.length,
                         jqueryEvent: e,
@@ -524,7 +524,7 @@
                         }
                     } else {
                         // The user has changed one file
-                        callSelfEvent('onfilechanging', e.target, {
+                        self.callSelfEvent('onfilechanging', e.target, {
                             old: self.uploads[self.changingindex], 
                             target: e.target, 
                             pseudoTarget: inputs[self.id]
@@ -619,7 +619,7 @@
          * @returns {object(plain)} The relevant fields needed for the upload
          */
         function setDataFromFile(file, i, target, changing) {
-            callSelfEvent('onfilesloading', target, {
+            self.callSelfEvent('onfilesloading', target, {
                 total: self.toload, 
                 loaded: self.loaded, 
                 target: target, 
@@ -657,12 +657,12 @@
                             width: undefined,
                             src: undefined
                         };
-                        afterFileRead(newfiledata, changing, target);
+                        self.afterFileRead(newfiledata, changing, target);
                     };
                     img.src = dataURL;
                 } else {
                     // Load normally
-                    afterFileRead(newfiledata, changing, target);
+                    self.afterFileRead(newfiledata, changing, target);
                 }
             };
         }
@@ -674,10 +674,10 @@
          * @param {object(DOMElement)} target The 
          * @returns {undefined}
          */
-        function afterFileRead(filedata, changing, target) {
+        this.afterFileRead = function (filedata, changing, target) {
             if (changing) {
                 // We're changing a file already in the upload list
-                callSelfEvent('onfilechanged', target, {
+                self.callSelfEvent('onfilechanged', target, {
                     new : filedata, 
                     old: self.uploads[filedata.index], 
                     target: target, 
@@ -693,7 +693,7 @@
                     self.uploads.push(filedata);
                 }
             }
-            callSelfEvent('onfilesloaded', target, {
+            self.callSelfEvent('onfilesloaded', target, {
                 total: self.toload, 
                 loaded: self.loaded + 1, 
                 target: target, 
@@ -710,7 +710,7 @@
             self.loaded++;
             if (self.loaded === self.toload) {
                 var ajslrc = $('#AJSLRContainer');
-                callSelfEvent('onfilesloaded', target, {total: self.toload, loaded: self.loaded + 1, pseudoTarget: inputs[self.id]});
+                self.callSelfEvent('onfilesloaded', target, {total: self.toload, loaded: self.loaded + 1, pseudoTarget: inputs[self.id]});
                 $('#AJS_' + self.id).val(json_encode(self.uploads));
                 $('#AJSUploadSection').addClass('AJSHidden');
                 $('#AJSImagePreview').removeClass('AJSHidden');
@@ -824,9 +824,9 @@
          * @param {object} thisarg The object to set as 'this' in the called function
          * @returns {unresolved} The result from calling the user function
          */
-        function callSelfEvent(eventname, thisarg) {
+        this.callSelfEvent = function (eventname, thisarg) {
             return self.opts[eventname].apply(thisarg, Array.prototype.slice.call(arguments, 2));
-        }
+        };
 
         /**
          * Construct this object
@@ -837,11 +837,13 @@
                 s.type = 'text/javascript';
                 s.src = 'ajaxstreamlegacy.js';
                 s.onload = function () {
-                    window['ajaxStreamLegacy'] = new ajaxStreamLegacy(cHE);
+                    var as = new ajaxStreamLegacy(cHE);
+                    window['ajaxStreamLegacy'] = merge(as, self);
+                    as.init();
                 };
                 reset(document.getElementsByTagName('head')).appendChild(s);
             }
-            callSelfEvent('oninit');
+            self.callSelfEvent('oninit');
             draw();
             analyseOptions(self.opts);
             self.initBinding();
@@ -878,6 +880,26 @@
             }
         }
         return n;
+    }
+    
+    /**
+     * Merge two objects
+     * @param {object} to The object that we are merging in to
+     * @param {object} from The object that we are merging from
+     * @returns {object} The merged object
+     */
+    function merge (to, from) {
+        for (var x in from) {
+            try {
+                if (!to[x]) {
+                    to[x] = from[x];
+                }
+            } catch (ex) {
+                console.warn(ex);
+                continue;
+            }
+        }
+        return to;
     }
 
     /**
