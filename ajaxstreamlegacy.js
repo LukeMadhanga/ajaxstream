@@ -3,10 +3,17 @@ function ajaxStreamLegacy(cHE) {
     var self = this;
     
     this.upload = function (input) {
-        var clone = $(input).clone();
-        clone.prop({id: 'AJSFileLegacy', name: 'AJSFileLegacy'});
-        $('#AJSLegacyForm').append(clone);
+        var i = $(input);
+        var parent = i.parent();
+        var clone = i.clone();
+        i.prop({id: 'AJSFileLegacy', name: 'AJSFileLegacy'});
+        $('#AJSLegacyForm').append(i);
+        parent.append(clone);
         $('#AJSLegacyForm').submit();
+    };
+    
+    this.afterUpload = function (location) {
+        console.log(location);
     };
     
     var __construct = (function () {
