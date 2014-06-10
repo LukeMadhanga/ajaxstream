@@ -1,10 +1,13 @@
 function ajaxStreamLegacy(cHE) {
     
-    var self = this;
+    var self = this;                                    // An alias to this
+    var curupload = null;                               // An object that describes the current upload
+    var curinput = null;                                // The input that has the file being uploaded
     
-    var curupload = null;
-    var curinput = null;
-    
+    /**
+     * Perform the legacy upload
+     * @param {object(DOMElement)} input The input that has the file being uploaded
+     */
     this.upload = function (input) {
         var i = $(input);
         var parent = i.parent();
@@ -17,7 +20,8 @@ function ajaxStreamLegacy(cHE) {
             size: file.size,
             newupload: true,
             customFields: {},
-            index: 0
+            index: 0,
+            islegacy: true
         };
         i.prop({id: 'AJSFileLegacy', name: 'AJSFileLegacy'});
         $('#AJSLegacyForm').append(i);
@@ -25,16 +29,23 @@ function ajaxStreamLegacy(cHE) {
         $('#AJSLegacyForm').submit();
     };
     
+    /**
+     * What to after a file has been uploaded
+     * @param {object(plain)} results The results from our upload
+     */
     this.afterUpload = function (results) {
         if (results.moved) {
             curupload.src = results.location;
             self.initBinding();
-            self.afterFileRead();
+            self.afterFileRead(curupload, false, curinput);
         } else {
             alert(results.error);
         }
     };
     
+    /**
+     * Initialise this object
+     */
     this.init = function () {
         if ($('#AJSLegacyForm').length === 0) {
             $('body').append(cHE.getHtml('form', cHE.getInput('AJSLegacy', JSON.stringify({

@@ -6,9 +6,14 @@ class cAjaxStream {
     
     static $settings;
     static $starttime;
+    static $cleandir = true;
     
-    const MAX_FILENAME_LENGTH = 120;
+    const MAX_FILENAME_LENGTH = 120;                            // The max length of a file name without the unixtime marker
+    const MAX_TIME_IN_UPLOADS = 200;                           // 2 hours in seconds
     
+    /**
+     * Process an uploaded file
+     */
     static function processUpload () {
         self::$starttime = time();
         self::$settings = $settings = json_decode(filter_input(INPUT_POST, 'AJSLegacy'));
@@ -18,19 +23,27 @@ class cAjaxStream {
         }
     }
     
+    /**
+     * Upload a file using legacy methods
+     * @param object(StdClass) $file The uploaded file object from the $_FILES super global
+     */
     static function handleLegacy($file) {
+        self::setDestination();
+        if (self::$cleandir) {
+            self::cleanDir();
+        }
         $filename = self::sanitiseFilename($file->name);
-        $fileloc = self::determineDestination($filename);
+        $destination = self::$settings->uploaddir . self::$starttime . "-{$filename}";
         try {
-            $filepath = self::getFileURL($fileloc);
+            $filepath = str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $destination);
             $error = null;
-            $moved = move_uploaded_file($file->tmp_name, $fileloc);
+            $moved = move_uploaded_file($file->tmp_name, $destination);
             if (!$moved) {
                 $lasterror = error_get_last();
                 $error = $lasterror['message'];
             }
             if (preg_match("/image\/*/", $file->type)) {
-                $imagedata = getimagesize($fileloc);
+                $imagedata = getimagesize($destination);
                 if ($imagedata) {
                     // Resize etc.
                 }
@@ -49,11 +62,10 @@ JS;
     }
     
     /**
-     * Determine the destination path for the uploaded file
-     * @param string $filename The file name
+     * Set the destination path for the uploaded file
      * @return string The destination path
      */
-    private static function determineDestination ($filename) {
+    private static function setDestination () {
         $uploaddir = self::$settings->uploaddir;
         if (!preg_match("/\/$/", $uploaddir)) {
             // The upload dir requires a '/' at the end
@@ -62,15 +74,24 @@ JS;
         if (substr($uploaddir, 0, 1) === '/') {
             $uploaddir = self::$settings->uploaddir = substr($uploaddir, 0);
         }
-        return filter_input(INPUT_SERVER, 'DOCUMENT_ROOT') . "/$uploaddir" . self::$starttime . "-{$filename}";
+        self::$settings->uploaddir = filter_input(INPUT_SERVER, 'DOCUMENT_ROOT') . "/$uploaddir";
     }
     
-    private static function getFileURL($path) {
-        return str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $path);
-    }
-    
+    /**
+     * Clean the upload directory
+     */
     private static function cleanDir() {
-        
+        $filelist = glob(self::$settings->uploaddir . '[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*');
+        foreach ($filelist as $path) {
+            $pathbits = explode('/', $path);
+            $filename = end($pathbits);
+            $namebits = explode('-', $filename);
+            $ut = (int) $namebits[0];
+            if ($ut && (self::$starttime - $ut > self::MAX_TIME_IN_UPLOADS)) {
+                // If we should delete this file
+                unlink($path);
+            }
+        }
     }
     
     /**
@@ -102,6 +123,9 @@ JS;
      * @return The stripped string
      */
     public static function stripAccents($str) {
+        if (!function_exists('mb_convert_encoding')) {
+            return $str;
+        }
         // First, deal with HTML entities.
         $s = html_entity_decode($str, ENT_NOQUOTES, 'UTF-8');
         // First deal with the r caron (e.g. in Dvorak) and other characters not found in ISO-8859-1. At the same time,

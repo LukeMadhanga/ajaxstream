@@ -639,7 +639,8 @@
                     size: file.size,
                     newupload: true,
                     customFields: {},
-                    index: index
+                    index: index,
+                    islegacy: false
                 };
                 if (!changing) {
                     self.currentlength++;
@@ -832,7 +833,7 @@
          * Construct this object
          */
         var __construct = (function() {
-            if (!browserCanDo('fileapi')) {
+            if (!browserCanDo('fileapi') && !$('script[src="ajaxstreamlegacy.js"]').exists()) {
                 var s = document.createElement('script');
                 s.type = 'text/javascript';
                 s.src = 'ajaxstreamlegacy.js';
