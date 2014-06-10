@@ -532,7 +532,7 @@
                         setDataFromFile(filelist[0], self.changingindex, e.target, true);
                     }
                 } else {
-                    
+                    ajaxStreamLegacy.upload(this);
                 }
             };
             
