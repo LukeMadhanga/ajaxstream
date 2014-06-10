@@ -282,6 +282,7 @@
     function ajaxStream(thisarg, opts) {
 
         var self = this;
+        this.legacy = null;
         this.id = thisarg.prop('id');
         this.changingindex = false;
         this.toload = 0;
@@ -471,6 +472,7 @@
             
             elem('AJSChooseText').onclick = function () {
                 $('#AJSFile').click();
+                self.addingmore = true;
             };
                     
             elem('AJSAdd').onclick = function () {
@@ -485,6 +487,7 @@
             elem('AJSChange').onclick = function () {
                 $('#AJSFile').click();
                 self.changingindex = self.currentupload;
+                self.addingmore = false;
             };
             
             elem('AJSFile').onchange = function (e) {
@@ -513,6 +516,7 @@
                     $('#AJSLoading').removeClass('AJSHidden');
 
                     if (self.changingindex === false) {
+                        // We are uploading a new file
                         var len = filelist.length;
                         var tlen = len + self.uploads.length;
                         if (tlen > self.opts.maxFiles) {
@@ -532,7 +536,7 @@
                         setDataFromFile(filelist[0], self.changingindex, e.target, true);
                     }
                 } else {
-                    ajaxStreamLegacy.upload(this);
+                    self.legacy.upload(this, self.changingindex);
                 }
             };
             
@@ -685,7 +689,6 @@
                     pseudoTarget: inputs[self.id]
                 });
                 self.uploads[filedata.index] = filedata;
-                self.changingindex = false;
             } else {
                 if (empty(self.uploads[filedata.index])) {
                     // The index is empty, so put the file at this index
@@ -701,7 +704,7 @@
                 pseudoTarget: inputs[self.id]
             });
             attemptProgression(target);
-        }
+        };
         
         /**
          * Keep attempting to progress until all files have loaded, at which point it is okay to progress
@@ -720,7 +723,9 @@
                 } else {
                     ajslrc.addClass('AJSHidden');
                 }
-                displayUpload(null, true);
+                var gotoend = self.changingindex === false;
+                self.changingindex = false;
+                displayUpload(null, gotoend);
             }
         }
         
@@ -833,16 +838,24 @@
          * Construct this object
          */
         var __construct = (function() {
-            if (!browserCanDo('fileapi') && !$('script[src="ajaxstreamlegacy.js"]').exists()) {
-                var s = document.createElement('script');
-                s.type = 'text/javascript';
-                s.src = 'ajaxstreamlegacy.js';
-                s.onload = function () {
-                    var as = new ajaxStreamLegacy(cHE);
-                    window['ajaxStreamLegacy'] = merge(as, self);
-                    as.init();
-                };
-                reset(document.getElementsByTagName('head')).appendChild(s);
+            if (!browserCanDo('fileapi')) {
+                var script = $('script[src="ajaxstreamlegacy.js"]');
+                if (script.exists()) {
+                    script.load(function () {
+                        self.legacy = new ajaxStreamLegacy(cHE);
+                        self.legacy.parent = self;
+                    });
+                } else {
+                    var s = document.createElement('script');
+                    s.type = 'text/javascript';
+                    s.src = 'ajaxstreamlegacy.js';
+                    s.onload = function () {
+                        self.legacy = new ajaxStreamLegacy(cHE);
+                        self.legacy.parent = self;
+                        self.legacy.init();
+                    };
+                    reset(document.getElementsByTagName('head')).appendChild(s);
+                }
             }
             self.callSelfEvent('oninit');
             draw();
