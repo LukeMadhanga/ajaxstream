@@ -48,14 +48,20 @@ class cAjaxStream {
                     // Resize etc.
                 }
             }
-            $result = json_encode(array('location' => $filepath, 'moved' => $moved, 'error' => $error, 'type' => $file->type));
+            $result = json_encode(array(
+                'location' => $filepath, 
+                'moved' => $moved, 
+                'error' => $error, 
+                'type' => $file->type,
+                'id' => self::$settings->id
+            ));
         } catch (Exception $ex) {
             $result = json_encode(array('moved' => false, 'error' => $ex->getMessage()));
         }
         header('Content-Type:text/html; charset=utf-8');
         echo <<<JS
 <script type='text/javascript'>
-    window.parent.ajaxStreamLegacy.afterUpload($result);
+    window.parent.ajaxStreamLegacy.afterLegacyUpload($result);
 </script>            
 JS;
         exit;

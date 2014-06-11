@@ -282,7 +282,9 @@
     function ajaxStream(thisarg, opts) {
 
         var self = this;
-        this.legacy = null;
+        var fapi;
+        var filedata = {};
+        var curinput;
         this.id = thisarg.prop('id');
         this.changingindex = false;
         this.toload = 0;
@@ -292,6 +294,7 @@
         this.addingmore = false;
         this.currentlength = 0;
         this.opts = opts;
+        this.legacysettings;
         this.uploads = [];
 
         /**
@@ -333,7 +336,36 @@
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
                 $('body').append(cHE.getDiv(drawMainDialogue(), 'AJS'));
             }
+            if (!fapi) {
+                self.drawLegacy();
+            }
         }
+
+        /**
+         * Draw the legacy elements
+         */
+        this.drawLegacy = function () {
+            self.legacysettings = JSON.stringify({
+                maxsize: self.opts.maxFileSize,
+                maxheight: self.opts.maxHeight,
+                maxwidth: self.opts.maxWidth,
+                uploaddir: self.opts.uploadTo,
+                islegacy: true,
+                id: self.id
+            });
+            if (!$('#AJSLegacy').exists()) {
+                var formsettings = {
+                    method: 'post', 
+                    action: self.opts.uploadScript, 
+                    enctype: 'multipart/form-data',
+                    target: 'AJSIFrame'
+                };
+                $('body').append(
+                    cHE.getHtml('form', cHE.getInput('AJSLegacy'), 'AJSLegacyForm', 'AJSHidden', formsettings) + 
+                    cHE.getHtml('iframe', null, 'AJSIFrame', 'AJSHidden', {name: 'AJSIFrame'})
+                );
+            };
+        };
         
         /**
          * Draw the main AjaxStream dialogue
@@ -469,7 +501,6 @@
          * Bind all events in one function
          */
         this.initBinding = function () {
-            
             elem('AJSChooseText').onclick = function () {
                 $('#AJSFile').click();
                 self.addingmore = true;
@@ -498,9 +529,9 @@
                     return false;
                 }
                 self.loaded = 0;
-                self.toload = filelist.length;
+                self.toload = fapi ? filelist.length : 1;
 
-                if (browserCanDo('fileapi')) {
+                if (fapi) {
                     // Event handler
                     self.cse = self.callSelfEvent('onfileselected', undefined, {
                         files: filelist,
@@ -536,7 +567,7 @@
                         setDataFromFile(filelist[0], self.changingindex, e.target, true);
                     }
                 } else {
-                    self.legacy.upload(this, self.changingindex);
+                    self.legacyUpload(this, self.changingindex);
                 }
             };
             
@@ -611,9 +642,57 @@
                 self.uploads = val.length ? json_decode(val, true) : [];
                 self.uploads.length ? displayUpload() : resetToUpload();
                 $('#AJS').show();
+                if (!self.uploads.length) {
+                    $('#AJSFile').click();
+                    self.addingmore = true;
+                }
             });
         };
         
+        /**
+         * Perform the legacy upload
+         * @param {object(DOMElement)} input The input that has the file being uploaded
+         */
+        this.legacyUpload = function(input) {
+            var i = $(input);
+            var parent = i.parent();
+            var clone = i.clone();
+            var file = input.files[0];
+            var index = self.changingindex === false ? self.uploads.length : self.changingindex;
+            curinput = input;
+            filedata = {
+                name: file.name,
+                mimetype: file.type,
+                size: file.size,
+                newupload: true,
+                customFields: {},
+                index: index,
+                islegacy: true
+            };
+            i.prop({id: 'AJSFileLegacy', name: 'AJSFileLegacy'});
+            $('#AJSLegacyForm').append(i);
+            parent.append(clone);
+            window['ajaxStreamLegacy'] = streams[self.id];
+            $('#AJSLegacy').val(self.legacysettings);
+            $('#AJSLegacyForm').prop({action: self.opts.uploadScript});
+            $('#AJSLegacyForm').submit();
+        };
+
+        /**
+         * What to after a file has been uploaded
+         * @param {object(plain)} results The results from our upload
+         */
+        this.afterLegacyUpload = function(results) {
+            if (results.moved) {
+                var self = streams[results.id];
+                filedata.src = results.location;
+                self.initBinding();
+                self.afterFileRead(filedata, self.changingindex !== false, curinput);
+            } else {
+                alert(results.error);
+            }
+        };
+
         /**
          * Read the uploaded file and created and create object describing it
          * @param {object(File)} file The File object taken from a FileList object
@@ -636,7 +715,7 @@
                 var URL = window.URL || window.webkitURL;
                 var dataURL = URL.createObjectURL(blob);
                 var index = changing ? i : self.currentlength;
-                var newfiledata =  {
+                filedata =  {
                     name: file.name,
                     src: dataURL,
                     mimetype: file.type,
@@ -654,20 +733,20 @@
                     var img = new Image();
                     img.onload = function () {
                         var image = this;
-                        newfiledata.width = image.width;
-                        newfiledata.height = image.height;
-                        newfiledata.viewport = {
+                        filedata.width = image.width;
+                        filedata.height = image.height;
+                        filedata.viewport = {
                             left: undefined,
                             right: undefined,
                             width: undefined,
                             src: undefined
                         };
-                        self.afterFileRead(newfiledata, changing, target);
+                        self.afterFileRead(filedata, changing, target);
                     };
                     img.src = dataURL;
                 } else {
                     // Load normally
-                    self.afterFileRead(newfiledata, changing, target);
+                    self.afterFileRead(filedata, changing, target);
                 }
             };
         }
@@ -680,6 +759,7 @@
          * @returns {undefined}
          */
         this.afterFileRead = function (filedata, changing, target) {
+                console.log(self);
             if (changing) {
                 // We're changing a file already in the upload list
                 self.callSelfEvent('onfilechanged', target, {
@@ -833,29 +913,23 @@
         this.callSelfEvent = function (eventname, thisarg) {
             return self.opts[eventname].apply(thisarg, Array.prototype.slice.call(arguments, 2));
         };
+        
+        
+        function ajaxStreamLegacy() {
+
+            
+        }
+        
 
         /**
          * Construct this object
          */
         var __construct = (function() {
-            if (!browserCanDo('fileapi')) {
-                var script = $('script[src="ajaxstreamlegacy.js"]');
-                if (script.exists()) {
-                    script.load(function () {
-                        self.legacy = new ajaxStreamLegacy(cHE);
-                        self.legacy.parent = self;
-                    });
-                } else {
-                    var s = document.createElement('script');
-                    s.type = 'text/javascript';
-                    s.src = 'ajaxstreamlegacy.js';
-                    s.onload = function () {
-                        self.legacy = new ajaxStreamLegacy(cHE);
-                        self.legacy.parent = self;
-                        self.legacy.init();
-                    };
-                    reset(document.getElementsByTagName('head')).appendChild(s);
-                }
+            fapi = browserCanDo('fileapi');
+            if (!fapi) {
+//                self.legacy = new ajaxStreamLegacy();
+//                self.legacy.parent = self;
+//                self.legacy.init();
             }
             self.callSelfEvent('oninit');
             draw();
