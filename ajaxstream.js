@@ -35,7 +35,7 @@
         uploads = 'uploads';
         T.c = count;
         T.currentupload = null;
-        T.currentlength;
+        T.currentlength = 0;
         T.changing = !1;
         T.toload = 0;
         T.loaded = 0;
@@ -69,7 +69,7 @@
             onuploadstart: ef,
 //            previewOrientation: root.const['PREVIEW_ORI_GRID'],
             resize: !0,
-            showPreviewOnForm: !0,
+            showPreviewOnForm: !1,
             translateFunction: function(s) {
                 for (var i = 1; i < arguments[length]; i++) {
                     var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
@@ -99,7 +99,7 @@
             }
         }
         
-        T.id = [T.c, '_', id(T), '_',index(T)].join('');
+        T.id = [T.c, '_', id(T)].join('');
         
         T.filechanged = function (e) {
             var filelist = e.target.files;
@@ -123,13 +123,20 @@
                         T.process(filelist[i], i);
                     }
                 } else {
-                    // @TODO Write fallback
+                    T.process(filelist[0], T.changing, true);
                 }
             } else {
-
+                // @TODO Write fallback
             }
         };
         
+        /**
+         * Process the uploaded file
+         * @param {object(File)} file An item from a FileList object
+         * @param {int} i The index of this file in the uploads
+         * @param {boolean} changing True if we are changing an existing file
+         * @param {object(DOMElement)} target The original file input
+         */
         T.process = function (file, i, changing, target) {
             var fr = new FileReader();
             fr.readAsArrayBuffer(file);
@@ -210,6 +217,7 @@
                 }
                 var gotoend = T.changing === !1;
                 T.changing = !1;
+                T.toload = T.loaded = 0;
                 T.displayUpload(null, gotoend);
             }
         };
@@ -249,7 +257,7 @@
             $(hAJS+'ImagePreview')[addclass](AJS+'Hidden');
             $(hAJS+'ChooseText')[rclass](AJS+'Hidden');
             $(hAJS+'Loading')[addclass](AJS+'Hidden');
-            T[uploads][length] ? lr[rclass](AJS+'Hidden') : lr[addclass](AJS+'Hidden')
+            T[uploads][length] ? lr[rclass](AJS+'Hidden') : lr[addclass](AJS+'Hidden');
         };
         
         /**
@@ -333,7 +341,7 @@
                 }
             });
             
-            $(hAJS+'Change')[unbind](change)[change](function () {
+            $(hAJS+'Change')[unbind](click)[click](function () {
                 // What to do when the 'change this file' button is clicked
                 T.changing = T.currentupload;
                 T.addingmore = !1;
@@ -373,14 +381,15 @@
             
             $(hAJS+'Close')[unbind](click)[click](function () {
                 $(hAJS+'').hide();
+                T = null;
             });
             
             $('[id^=AJSUploadBtn_]').unbind('click').click(function () {
                 var asid = $(this).prop('id').replace(AJS+'UploadBtn_', '');
-                T = streams[asid];
+                T = $.ajaxStream.streams[asid];
                 T.initBinding();
                 var val = $(hAJS+'_' + T.id).val();
-                T[uploads] = val.length ? json_decode(val, !0) : [];
+                T[uploads] = val[length] ? json_decode(val, !0) : [];
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
                 if (!T[uploads][length]) {
@@ -417,6 +426,9 @@
             }
             T.initBinding();
         }();
+        
+        // Cache this object for later use
+        $.ajaxStream.streams[T.id] = T;
         count++;
         return T;
     };
@@ -456,7 +468,6 @@
             );
         }
     };
-
 
     /**
      * Draw the main AjaxStream dialogue
@@ -672,6 +683,21 @@
     };
     
     /**
+     * @brief Convert an object into an array
+     * @param {object} obj The object to convert
+     * @returns {array} The array as an object
+     */
+    function object_to_array (obj) {
+        var output = [];
+        for (var x in obj) {
+            if (obj.hasOwnProperty(x)) {
+                output.push(obj[x]);
+            }
+        }
+        return output;
+    };
+    
+    /**
      * Decode a JSON string
      * @syntax var obj = json_decode(jsonstring);<br/>var obj2 = json_decode(jsonstring, true);
      * @param {string} str The json string to decode
@@ -744,6 +770,8 @@
     
     $.ajaxStream = {
         author: 'Luke Madhanga',
+        license: 'MIT',
+        streams: {},
         version: 0.02
     };
     
