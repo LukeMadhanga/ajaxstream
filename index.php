@@ -13,7 +13,7 @@ echo <<<'HTML'
             #holder > h2 {font-family: sans-serif;font-size: 50;margin-bottom: 10px;text-align: center;}
             #file {margin: 25px 70px;}
         </style>
-        <script type='text/javascript'>$(function (){$('#file').ajaxStream();$('#second').ajaxStream();});</script>
+        <script type='text/javascript'>$(function (){$('#file').ajaxStream();$('#second').ajaxStream({maxFiles:2,accept:['image/*']});});</script>
     </head>
     <body>
         <div id='holder'>

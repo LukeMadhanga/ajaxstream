@@ -1,8 +1,17 @@
 (function ($, win, count){
     
-    var length = 'length';
+    // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
+    var length = 'length',
+    prop = 'prop',
+    AJS = 'AJS',
+    hAJS = '#AJS',
+    dAJS = '.AJS';
     
     $.fn.ajaxStream = function (opts){
+        /**
+         * An alias to this object
+         * @type @this;
+         */
         var T = this;
         if (T[length] > 1) {
             // If the length is more than one, apply this function to all objects
@@ -14,22 +23,26 @@
         var ef = function () {},
         body = $('body'),
         fapi = browserCanDo('fileapi'),
-        // Access jQuery methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
+        // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
         par = 'parent',
         addclass = 'addClass',
         rclass = 'removeClass',
         append = 'append',
         click = 'click',
         unbind = 'unbind',
-        change = 'change';
+        change = 'change',
+        attr = 'attr',
+        uploads = 'uploads';
         T.c = count;
+        T.currentupload = null;
         T.currentlength;
         T.changing = !1;
         T.toload = 0;
         T.loaded = 0;
-        T.uploads = [];
+        T[uploads] = [];
+        T.addingmore = !1;
         T.s = $.extend({
-            allowedTypes: ['*'],
+            accept: ['*'],
             allowFilters: !0,
             fetchRequiredFiles: !1,
             maxFileSize: 2097152,
@@ -79,9 +92,11 @@
          * @param {string} s The input string, untranslated
          * @returns {string} The translated string
          */
-        function tx(s) {
-            s === s; // Null assignemnt: Dump NetBeans warning
-            return T.s.translateFunction.apply(null, arguments);
+        if (typeof tx !== 'undefined') {
+            function tx(s) {
+                s === s; // Null assignemnt: Dump NetBeans warning
+                return T.s.translateFunction.apply(null, arguments);
+            }
         }
         
         T.id = [T.c, '_', id(T), '_',index(T)].join('');
@@ -94,21 +109,21 @@
             }
             T.toload = filelist[length];
             if (fapi) {
-                $('#AJSChooseText')[addclass]('AJSHidden');
-                $('#AJSLoading')[rclass]('AJSHidden');
+                $(hAJS+'ChooseText')[addclass](AJS+'Hidden');
+                $(hAJS+'Loading')[rclass](AJS+'Hidden');
                 if (T.changing === !1) {
                     // This is a new file
                     var len = filelist[length];
-                    var tlen = len + T.uploads[length];
+                    var tlen = len + T[uploads][length];
                     if (tlen > T.s.maxFiles) {
                         console.warn(tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles));
-                        len = T.toload = T.s.maxFiles - T.uploads[length];
+                        len = T.toload = T.s.maxFiles - T[uploads][length];
                     }
                     for (var i = 0; i < len; i++) {
                         T.process(filelist[i], i);
                     }
                 } else {
-
+                    // @TODO Write fallback
                 }
             } else {
 
@@ -163,13 +178,13 @@
                 // We're changing a file already in the upload list
 //                T.callSelfEvent('onfilechanged', target, {
 //                    new : filedata, 
-//                    old: T.uploads[filedata.index], 
+//                    old: T[uploads][filedata.index], 
 //                    target: target, 
 //                    pseudoTarget: inputs[T.id]
 //                });
-                T.uploads[filedata.index] = filedata;
+                T[uploads][filedata.index] = filedata;
             } else {
-                T.uploads[filedata.index] ? T.uploads[filedata.index] = filedata : T.uploads.push(filedata);
+                T[uploads][filedata.index] ? T[uploads][filedata.index] = filedata : T[uploads].push(filedata);
             }
 //            T.callSelfEvent('onfilesloaded', target, {
 //                total: T.toload, 
@@ -183,15 +198,15 @@
         T.attemptProgression = function () {
             T.loaded++;
             if (T.loaded === T.toload) {
-                var ajslrc = $('#AJSLRContainer');
+                var ajslrc = $(hAJS+'LRContainer');
 //                T.callSelfEvent('onfilesloaded', target, {total: T.toload, loaded: T.loaded + 1, pseudoTarget: inputs[T.id]});
-                $('#AJS_' + T.id).val(json_encode(T.uploads));
-                $('#AJSUploadSection')[addclass]('AJSHidden');
-                $('#AJSImagePreview')[rclass]('AJSHidden');
-                if (T.uploads[length] > 1) {
-                    ajslrc[rclass]('AJSHidden');
+                $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
+                $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
+                $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
+                if (T[uploads][length] > 1) {
+                    ajslrc[rclass](AJS+'Hidden');
                 } else {
-                    ajslrc[addclass]('AJSHidden');
+                    ajslrc[addclass](AJS+'Hidden');
                 }
                 var gotoend = T.changing === !1;
                 T.changing = !1;
@@ -205,24 +220,36 @@
          * @param {boolean} gotoend
          */
         T.displayUpload = function (cur, gotoend) {
-            if (T.uploads[length]) {
+            if (T[uploads][length]) {
                 if (!cur) {
                     cur = T.getCurr(gotoend);
                 }
                 var src = cur.src;
-                var ajsc = $('#AJSCrop');
+                var ajsc = $(hAJS+'Crop');
                 if (cur.mimetype.match('image/*')) {
-                    ajsc.removeClass('AJSHidden');
+                    ajsc.removeClass(AJS+'Hidden');
                 } else {
                     src = getIconImagePath(cur.mimetype);
-                    ajsc.addClass('AJSHidden');
+                    ajsc.addClass(AJS+'Hidden');
                 }
-                var img = elem('AJSUploadPreview');
+                var img = elem(AJS+'UploadPreview');
                 img.src = src;
-                $('#AJSUploadPreview').removeClass('AJSTransparent');//.addClass('AJSOpaque');
+                $(hAJS+'UploadPreview').removeClass(AJS+'Transparent');//.addClass(AJS+'Opaque');
             } else {
                 resetToUpload();
             }
+        };
+        
+        /**
+         * Reset the main dialogue so that it shows the input form
+         */
+        T.resetToUpload = function () {
+            var lr = $(hAJS+'RContainer');
+            $(hAJS+'UploadSection')[rclass](AJS+'Hidden');
+            $(hAJS+'ImagePreview')[addclass](AJS+'Hidden');
+            $(hAJS+'ChooseText')[rclass](AJS+'Hidden');
+            $(hAJS+'Loading')[addclass](AJS+'Hidden');
+            T[uploads][length] ? lr[rclass](AJS+'Hidden') : lr[addclass](AJS+'Hidden')
         };
         
         /**
@@ -232,50 +259,158 @@
          */
          T.getCurr = function(gotoend) {
             if (gotoend) {
-                T.currentupload = T.uploads.length  - 1;
-                return end(T.uploads);
+                T.currentupload = T[uploads][length]  - 1;
+                return end(T[uploads]);
             } else {
                 if (T.addingmore) {
-                    var res = end(T.uploads);
+                    var res = end(T[uploads]);
                     T.currentupload = res.index - 1;
                     return res;
                 } else {
                     if (T.currentupload || T.currentupload === 0) {
-                        return T.uploads[T.currentupload];
+                        return T[uploads][T.currentupload];
                     }
                     T.currentupload = 0;
-                    return reset(T.uploads);
+                    return reset(T[uploads]);
                 }
             }
         };
         
+        T.changePrev = function (goingleft) {
+            var addition = goingleft ? -1 : 1;
+            var cur;
+            if (T.currentupload + addition < 0) {
+                cur = end(T.uploads);
+                T.currentupload = T[uploads][length] - 1;
+            } else if (T.currentupload + addition > (T[uploads][length] - 1)) {
+                cur = reset(T[uploads]);
+                T.currentupload = 0;
+            } else {
+                cur = T[uploads][T.currentupload + addition];
+                T.currentupload +=  addition;
+            }
+            T.displayUpload(cur);
+        };
+                
+        
+        /**
+         * Initialise all of the events in one function
+         */
         T.initBinding = function (){
             
-            $('#AJSChooseText')[unbind](click)[click](function (){
-                $('#AJSFile')[click]();
+            // @todo Possibly go vanilla?
+            
+            var ajsfile = $(hAJS+'File');
+            
+            $(hAJS+'ChooseText')[unbind](click)[click](function (){
+                var fa = {accept:T.s.accept};
+                T.addingmore = !0;
+                if (T.s.maxFiles > 1) {
+                    // Allow us to have multiple files
+                    fa['multiple'] = !0;
+                }
+                ajsfile[attr](fa)[click]();
             });
             
-            $('#AJSFile')[unbind](change)[change](T.filechanged);
+            ajsfile[unbind](change)[change](T.filechanged);
+            
+            $(hAJS+'')[unbind]('dbclick').dblclick(function () {
+                // Remove accidental double click highlighting
+                if (win.getSelection) {
+                    win.getSelection().removeAllRanges();
+                } else if (document.selection) {
+                    document.selection.empty();
+                }
+            });
+                    
+            $(hAJS+'Add')[unbind](click)[click](function () {
+                // What to do when the add button is clicked
+                if ((T[uploads][length] + 1) > T.s.maxFiles) {
+                    
+                } else {
+                    ajsfile[click]();
+                    T.addingmore = !0;
+                }
+            });
+            
+            $(hAJS+'Change')[unbind](change)[change](function () {
+                // What to do when the 'change this file' button is clicked
+                T.changing = T.currentupload;
+                T.addingmore = !1;
+                ajsfile[click]();
+            });
+            
+            $(hAJS+'L')[unbind](click)[click](function (){
+                T.changePrev(!0);
+            });
+            
+            $(hAJS+'R')[unbind](click)[click](function (){
+                T.changePrev();
+            });
+            
+            $(hAJS+'Remove')[unbind](click)[click](function () {
+                if (confirm(tx('Are you sure you want to delete this file?'))) {
+                    var temp = [],
+                    lrc = $(hAJS+'LRContainer');
+                    for (var i = 0, len = T[uploads][length]; i < len; i++) {
+                        if (T[uploads][i] && i !== T.currentupload) {
+                            temp.push(T[uploads][i]);
+                        }
+                    }
+                    T[uploads] = temp;
+                    T.currentlength = T[uploads][length];
+                    $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
+                    $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
+                    $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
+                    if (T[uploads][length] > 1) {
+                        lrc[rclass](AJS+'Hidden');
+                    } else {
+                        lrc[addclass](AJS+'Hidden');
+                    }
+                    T.displayUpload();
+                }
+            });
+            
+            $(hAJS+'Close')[unbind](click)[click](function () {
+                $(hAJS+'').hide();
+            });
+            
+            $('[id^=AJSUploadBtn_]').unbind('click').click(function () {
+                var asid = $(this).prop('id').replace(AJS+'UploadBtn_', '');
+                T = streams[asid];
+                T.initBinding();
+                var val = $(hAJS+'_' + T.id).val();
+                T[uploads] = val.length ? json_decode(val, !0) : [];
+                T[uploads][length] ? T.displayUpload() : T.resetToUpload();
+                $(hAJS+'').show();
+                if (!T[uploads][length]) {
+                    $(hAJS+'File').click();
+                    T.addingmore = !0;
+                }
+            });
             
         };
         
+        /**
+         * Draw the ajax main window
+         */
         T.draw = function (){
             // Auto executing
             var parent = T[par]();
-            T[addclass]('AJSHidden');
-            if (exists($('#AJS_' + T.id))) {
+            T[addclass](AJS+'Hidden');
+            if (exists($(hAJS+'_' + T.id))) {
                 T.loadExisting();
             } else {
-                parent[append](cHE.getInput('AJS_' + T.id, null, null, 'hidden'));
+                parent[append](cHE.getInput(AJS+'_' + T.id, null, null, 'hidden'));
             }
             if (T.s.showPreviewOnForm) {
                 
             } else {
-                parent[append](cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {'data-mandatory': !0}));
+                parent[append](cHE.getSpan(tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
             }
-            if (!exists($('#AJS'))) {
+            if (!exists($(hAJS+''))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body[append](cHE.getDiv(drawMainDialogue(), 'AJS'));
+                body[append](cHE.getDiv(drawMainDialogue(), AJS));
                 if (!fapi) {
                     drawLegacy();
                 }
@@ -292,7 +427,7 @@
      * @returns {int} The index of the element
      */
     function index(jqelem) {
-        var tagname = jqelem.prop('tagName');
+        var tagname = jqelem[prop]('tagName');
         return $(tagname).index(jqelem);
     }    
     
@@ -308,16 +443,16 @@
 //            islegacy: !0,
 //            id: self.id
 //        });
-        if (!exists($('#AJSLegacy'))) {
+        if (!exists($(hAJS+'Legacy'))) {
             var formsettings = {
                 method: 'post',
 //                action: self.opts.uploadScript,
                 enctype: 'multipart/form-data',
-                target: 'AJSIFrame'
+                target: AJS+'IFrame'
             };
             $('body').append(
-                    cHE.getHtml('form', cHE.getInput('AJSLegacy', null, null, 'hidden'), 'AJSLegacyForm', 'AJSHidden', formsettings) +
-                    cHE.getHtml('iframe', null, 'AJSIFrame', 'AJSHidden', {name: 'AJSIFrame'})
+                    cHE.getHtml('form', cHE.getInput(AJS+'Legacy', null, null, 'hidden'), AJS+'LegacyForm', AJS+'Hidden', formsettings) +
+                    cHE.getHtml('iframe', null, AJS+'IFrame', AJS+'Hidden', {name: AJS+'IFrame'})
             );
         }
     };
@@ -332,7 +467,7 @@
         var top = drawImagePreview();
         top += drawViewPort();
         top += drawUploader();
-        var outtext = cHE.getDiv(top, 'AJSMain');
+        var outtext = cHE.getDiv(top, AJS+'Main');
         return outtext;
     }
 
@@ -344,11 +479,11 @@
     function drawImagePreview() {
 //            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
 //            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
-        var outtext = drawActionBar() + cHE.getHtml('img', null, 'AJSUploadPreview') + cHE.getDiv(
-            cHE.getSpan(null, 'AJSL', 'AJSLR asicons-arrow-left') + 
-            cHE.getSpan(null, 'AJSR', 'AJSLR asicons-arrow-right'), 'AJSLRContainer'
+        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE.getDiv(
+            cHE.getSpan(null, AJS+'L', AJS+'LR asicons-arrow-left') + 
+            cHE.getSpan(null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
         );
-        return cHE.getDiv(outtext, 'AJSImagePreview', 'AJSHidden');
+        return cHE.getDiv(outtext, AJS+'ImagePreview', AJS+'Hidden');
     }
 
     /**
@@ -357,15 +492,15 @@
      */
     function drawActionBar() {
         return cHE.getDiv(
-            cHE.getDiv(null, 'AJSActionsOverlay') +    
+            cHE.getDiv(null, AJS+'ActionsOverlay') +    
             cHE.getDiv(
-                cHE.getSpan(null, 'AJSAdd', 'asicons-plus', {title: tx('Add another file')}) +
-                cHE.getSpan(null, 'AJSChange', 'asicons-upload', {title: tx('Change file')}) +
-                cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) +
-                cHE.getSpan(null, 'AJSCrop', 'asicons-resize-shrink', {title: tx('Resize image')}) +
-                cHE.getSpan(null, 'AJSRemove', 'asicons-trash', {title: tx('Remove file')}) +
-                cHE.getSpan(null, 'AJSClose', 'asicons-cross', {title: tx('Close window')})), 
-        'AJSPreviewActions');
+                cHE.getSpan(null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
+                cHE.getSpan(null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
+                cHE.getSpan(null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
+                cHE.getSpan(null, AJS+'Crop', 'asicons-resize-shrink', {title: tx('Resize image')}) +
+                cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
+                cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
+        AJS+'PreviewActions');
     }
 
     /**
@@ -386,13 +521,13 @@
      */
     function drawUploader() {
         var choosefile = 
-                cHE.getSpan(tx('Choose file'), 'AJSChooseText', 'AJSBtn') + 
-                cHE.getHtml('img', null, 'AJSLoading', 'AJSHidden', {src: 'files/loader.gif', title: tx('Files are loading')});
+                cHE.getSpan(tx('Choose file'), AJS+'ChooseText', AJS+'Btn') + 
+                cHE.getHtml('img', null, AJS+'Loading', AJS+'Hidden', {src: 'files/loader.gif', title: tx('Files are loading')});
         var outtext = cHE.getDiv(
-                cHE.getInput('AJSFile', null, 'AJSHidden', 'file') +
-                cHE.getDiv(choosefile, 'AJSChooseFile'), 'AJSChooseSection');
-        outtext += cHE.getDiv(tx('DROP'), 'AJSDropZone', 'AJSHidden');
-        return cHE.getDiv(outtext, 'AJSUploadSection');
+                cHE.getInput(AJS+'File', null, AJS+'Hidden', 'file') +
+                cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
+        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJS+'Hidden');
+        return cHE.getDiv(outtext, AJS+'UploadSection');
     }
     
     /**
@@ -414,6 +549,24 @@
      */
     function end (arr) {
         return arr.slice(-1)[0];
+    };
+    
+    /**
+     * @brief Return the first element in an array
+     * @param {array} arr The array that we will take from
+     * @returns {unknown} The first element in your array
+     */
+    function reset (arr) {
+        if (arr[0]) {
+            return arr[0];
+        } else {
+            for (var x in arr) {
+                if (arr.hasOwnProperty(x)) {
+                    // Return the first one
+                    return arr[x];
+                }
+            }
+        }
     };
 
     /**
@@ -586,7 +739,7 @@
      * @returns {string} The id of the element
      */
     function id(jqelem) {
-        return jqelem.prop('id');
+        return jqelem[prop]('id');
     }
     
     $.ajaxStream = {
