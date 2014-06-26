@@ -101,6 +101,10 @@
         
         T.id = [T.c, '_', id(T)].join('');
         
+        /**
+         * The processing function for when the file input has registered a change event
+         * @param {object(DOMEvent)} e
+         */
         T.filechanged = function (e) {
             var filelist = e.target.files;
             if (!filelist[length]) {
@@ -180,6 +184,12 @@
             };
         };
         
+        /**
+         * What to do after the selected file has been read
+         * @param {object(plain)} filedata
+         * @param {boolean} changing
+         * @param {object(DOMElement)} target
+         */
         T.afterFileRead = function (filedata, changing, target) {
             if (changing) {
                 // We're changing a file already in the upload list
@@ -202,6 +212,9 @@
             T.attemptProgression(target);
         };
         
+        /**
+         * Attempt to progress. If files loaded equals files selected, progress, otherwise do nothing
+         */
         T.attemptProgression = function () {
             T.loaded++;
             if (T.loaded === T.toload) {
@@ -284,6 +297,10 @@
             }
         };
         
+        /**
+         * Preview the next (to the left or right) uploaded file
+         * @param {boolean} goingleft True if the left button was clicked
+         */
         T.changePrev = function (goingleft) {
             var addition = goingleft ? -1 : 1;
             var cur;
@@ -349,15 +366,18 @@
             });
             
             $(hAJS+'L')[unbind](click)[click](function (){
+                // Go left
                 T.changePrev(!0);
             });
             
             $(hAJS+'R')[unbind](click)[click](function (){
+                // Go right
                 T.changePrev();
             });
             
             $(hAJS+'Remove')[unbind](click)[click](function () {
                 if (confirm(tx('Are you sure you want to delete this file?'))) {
+                    // Remove the file by re-indexing the uploads array
                     var temp = [],
                     lrc = $(hAJS+'LRContainer');
                     for (var i = 0, len = T[uploads][length]; i < len; i++) {
@@ -367,6 +387,7 @@
                     }
                     T[uploads] = temp;
                     T.currentlength = T[uploads][length];
+                    // Update the value for this input
                     $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                     $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
                     $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
@@ -380,20 +401,25 @@
             });
             
             $(hAJS+'Close')[unbind](click)[click](function () {
+                // Close the upload screen
                 $(hAJS+'').hide();
                 T = null;
             });
             
-            $('[id^=AJSUploadBtn_]').unbind('click').click(function () {
+            $('[id^=AJSUploadBtn_]')[unbind](click)[click](function () {
+                // Determine what stream we want
                 var asid = $(this).prop('id').replace(AJS+'UploadBtn_', '');
+                // Set it as the current object
                 T = $.ajaxStream.streams[asid];
                 T.initBinding();
+                // Get the upload data for this input
                 var val = $(hAJS+'_' + T.id).val();
                 T[uploads] = val[length] ? json_decode(val, !0) : [];
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
                 if (!T[uploads][length]) {
-                    $(hAJS+'File').click();
+                    // If there is nothing in the uploads, open the file select immediately
+                    $(hAJS+'File')[click]();
                     T.addingmore = !0;
                 }
             });
