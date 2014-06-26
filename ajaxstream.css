@@ -93,3 +93,40 @@
 .asicons-zoomout:before {
 	content: "\e616";
 }
+[id^='AJS'], [class^='AJS'] {font-family: sans-serif;}
+.AJSHidden {display: none !important;}
+/*#AJS {display: none;}*/
+.AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
+.AJSBtn:hover {background: #DDD;}
+#AJSDropZone {}
+#AJSFile {}
+#AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;
+             padding: 10px;box-sizing: border-box;max-width: 960px; max-height: 540px;}
+#AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
+#AJSUploadSection {position: relative;width: 100%;height: 100%;}
+#AJSMain {width: 100%;width: 100%;height: 100%;}
+#AJSLoading {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;}
+
+#AJSUploadPreview {max-height: 100%;cursor: move;opacity: 1;
+    -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;}
+
+
+#AJSImagePreview {text-align: center;overflow: hidden;background: url(files/bg.jpg) center center;height: 100%;
+                         box-sizing: border-box;border: solid thin #F9F9F9;position: relative;}
+#AJSImagePreview:hover > #AJSPreviewActions {top: 0;}
+.AJSLR {color: #000;position: absolute;cursor: pointer;background: #FFF;opacity: 0.05;
+               -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;box-shadow: 0px 0px 1px #000;}
+.AJSLR:hover {opacity: 0.15;}
+#AJSLRContainer {position: absolute;top: 50%;font-size: 50px;margin: -25px 0 0;width: 100%;}
+#AJSR {right: 0;}
+#AJSL {left: 0;}
+#AJSClose {background: #A00000;opacity: 0.5;}
+#AJSClose:hover {opacity: 0.7;background: #A00000 !important;}
+#AJSPreviewActions {position: absolute;height: 40px;width: 100%;
+    text-align: right;top: -40px;-webkit-transition: top 0.4s;-moz-transition: top 0.4s;transition: top 0.4s;}
+#AJSPreviewActions > div > span {box-sizing: border-box;line-height: 40px;padding: 0 5px;height: 40px;width: 40px;
+    display: inline-block;text-align: center;cursor: pointer;border-left: solid thin #6F6F6F;-webkit-transition: background 0.1s;
+    -moz-transition: background 0.1s;transition: background 0.1s;}
+#AJSPreviewActions > div > span:hover {background: #707070;}
+#AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
+#AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}

@@ -1,38 +1,64 @@
-(function($) {
-
-    $.fn.ajaxStream = function(opts) {
-        var self = this;
-        var defaults = {
+(function ($, win, count){
+    
+    var length = 'length';
+    
+    $.fn.ajaxStream = function (opts){
+        var T = this;
+        if (T[length] > 1) {
+            // If the length is more than one, apply this function to all objects
+            T.each(function (){
+                $(this).ajaxStream(opts);
+            });
+            return T;
+        }
+        var ef = function () {},
+        body = $('body'),
+        fapi = browserCanDo('fileapi'),
+        // Access jQuery methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
+        par = 'parent',
+        addclass = 'addClass',
+        rclass = 'removeClass',
+        append = 'append',
+        click = 'click',
+        unbind = 'unbind',
+        change = 'change';
+        T.c = count;
+        T.currentlength;
+        T.changing = !1;
+        T.toload = 0;
+        T.loaded = 0;
+        T.uploads = [];
+        T.s = $.extend({
             allowedTypes: ['*'],
-            allowFilters: true,
-            fetchRequiredFiles: false,
+            allowFilters: !0,
+            fetchRequiredFiles: !1,
             maxFileSize: 2097152,
             maxFiles: 1,
             iconPreviewWidth: 200,
             iconPreviewHeight: 200,
             maxHeight: 1024,
             maxWidth: 1024,
-            onfilechanging: function() {},
-            onfilechanged: function() {},
-            onfileselected: function() {},
-            onfilesloaded: function() {},
-            onfilesloading: function() {},
-            oninit: function() {},
-            onlegacyuploadfail: function() {},
-            onlegacyuploadfinish: function() {},
-            onlegacyuploadstart: function() {},
-            onsingleuploadfail: function() {},
-            onsingleuploadfinish: function() {},
-            onsingleuploadstart: function() {},
-            onuploadfail: function() {},
-            onuploadfinish: function() {},
-            onuploadprogress: function() {},
-            onuploadstart: function() {},
+            onfilechanging: ef,
+            onfilechanged: ef,
+            onfileselected: ef,
+            onfilesloaded: ef,
+            onfilesloading: ef,
+            oninit: ef,
+            onlegacyuploadfail: ef,
+            onlegacyuploadfinish: ef,
+            onlegacyuploadstart: ef,
+            onsingleuploadfail: ef,
+            onsingleuploadfinish: ef,
+            onsingleuploadstart: ef,
+            onuploadfail: ef,
+            onuploadfinish: ef,
+            onuploadprogress: ef,
+            onuploadstart: ef,
 //            previewOrientation: root.const['PREVIEW_ORI_GRID'],
-            resize: true,
-            showPreviewOnForm: true,
+            resize: !0,
+            showPreviewOnForm: !0,
             translateFunction: function(s) {
-                for (var i = 1; i < arguments.length; i++) {
+                for (var i = 1; i < arguments[length]; i++) {
                     var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
                     s = s.replace(re, arguments[i]);
                 }
@@ -40,92 +66,382 @@
             },
             uploadScript: "upload.php",
             uploadTo: "uploads",
-            uploadWithForm: false,
-            useViewport: false,
-            verbose: false,
+            uploadWithForm: !1,
+            useViewport: !1,
+            verbose: !1,
             viewportHeight: 240,
             viewportWidth: 240
+        }, opts);
+
+        /**
+         * @brief Translate a string using the supplied translation function
+         * @syntax tx(s [, arg1, arg2, ...])
+         * @param {string} s The input string, untranslated
+         * @returns {string} The translated string
+         */
+        function tx(s) {
+            s === s; // Null assignemnt: Dump NetBeans warning
+            return T.s.translateFunction.apply(null, arguments);
+        }
+        
+        T.id = [T.c, '_', id(T), '_',index(T)].join('');
+        
+        T.filechanged = function (e) {
+            var filelist = e.target.files;
+            if (!filelist[length]) {
+                T.changing = !1;
+                return;
+            }
+            T.toload = filelist[length];
+            if (fapi) {
+                $('#AJSChooseText')[addclass]('AJSHidden');
+                $('#AJSLoading')[rclass]('AJSHidden');
+                if (T.changing === !1) {
+                    // This is a new file
+                    var len = filelist[length];
+                    var tlen = len + T.uploads[length];
+                    if (tlen > T.s.maxFiles) {
+                        console.warn(tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles));
+                        len = T.toload = T.s.maxFiles - T.uploads[length];
+                    }
+                    for (var i = 0; i < len; i++) {
+                        T.process(filelist[i], i);
+                    }
+                } else {
+
+                }
+            } else {
+
+            }
         };
         
-        var s = $.extend(defaults, opts);
-        
-        
-        
-    };
-    
-    $.ajaxStream = {
-        author: 'Luke Madhanga',
-        version: 0.3
-    };
-    
-    /**
-     * Perform a deep clone of an object
-     * @syntax clone(object);
-     * @param {object} original The object to clone from
-     * @returns {object} The cloned object
-     */
-    function clone(original) {
-        var n = {};
-        for (var x in original) {
-            if (original.hasOwnProperty(x)) {
-                if (is_object(original[x])) {
-                    n[x] = clone(original[x]);
+        T.process = function (file, i, changing, target) {
+            var fr = new FileReader();
+            fr.readAsArrayBuffer(file);
+            fr.onload = function(e) {
+                var blob = new Blob([e.target.result], {type: file.type});
+                var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
+                var index = changing ? i : T.currentlength;
+                var filedata =  {
+                    name: file.name,
+                    src: dataURL,
+                    mimetype: file.type,
+                    size: file.size,
+                    newupload: !0,
+                    customFields: {},
+                    index: index,
+                    islegacy: !1
+                };
+                if (!changing) {
+                    T.currentlength++;
+                }
+                if (file.type.match('image/*')) {
+                    // If this is an image, then there is some extra information that we can add
+                    var img = new Image();
+                    img.onload = function () {
+                        var image = this;
+                        filedata.width = image.width;
+                        filedata.height = image.height;
+                        filedata.viewport = {
+                            left: undefined,
+                            right: undefined,
+                            width: undefined,
+                            src: undefined
+                        };
+                        T.afterFileRead(filedata, changing, target);
+                    };
+                    img.src = dataURL;
                 } else {
-                    n[x] = original[x];
+                    // Load normally
+                    T.afterFileRead(filedata, changing, target);
+                }
+            };
+        };
+        
+        T.afterFileRead = function (filedata, changing, target) {
+            if (changing) {
+                // We're changing a file already in the upload list
+//                T.callSelfEvent('onfilechanged', target, {
+//                    new : filedata, 
+//                    old: T.uploads[filedata.index], 
+//                    target: target, 
+//                    pseudoTarget: inputs[T.id]
+//                });
+                T.uploads[filedata.index] = filedata;
+            } else {
+                T.uploads[filedata.index] ? T.uploads[filedata.index] = filedata : T.uploads.push(filedata);
+            }
+//            T.callSelfEvent('onfilesloaded', target, {
+//                total: T.toload, 
+//                loaded: T.loaded + 1, 
+//                target: target, 
+//                pseudoTarget: inputs[T.id]
+//            });
+            T.attemptProgression(target);
+        };
+        
+        T.attemptProgression = function () {
+            T.loaded++;
+            if (T.loaded === T.toload) {
+                var ajslrc = $('#AJSLRContainer');
+//                T.callSelfEvent('onfilesloaded', target, {total: T.toload, loaded: T.loaded + 1, pseudoTarget: inputs[T.id]});
+                $('#AJS_' + T.id).val(json_encode(T.uploads));
+                $('#AJSUploadSection')[addclass]('AJSHidden');
+                $('#AJSImagePreview')[rclass]('AJSHidden');
+                if (T.uploads[length] > 1) {
+                    ajslrc[rclass]('AJSHidden');
+                } else {
+                    ajslrc[addclass]('AJSHidden');
+                }
+                var gotoend = T.changing === !1;
+                T.changing = !1;
+                T.displayUpload(null, gotoend);
+            }
+        };
+        
+        /**
+         * Display a preview of an upload file
+         * @param {object(plain)} cur The object that describes the file for which we are seeking a preview
+         * @param {boolean} gotoend
+         */
+        T.displayUpload = function (cur, gotoend) {
+            if (T.uploads[length]) {
+                if (!cur) {
+                    cur = T.getCurr(gotoend);
+                }
+                var src = cur.src;
+                var ajsc = $('#AJSCrop');
+                if (cur.mimetype.match('image/*')) {
+                    ajsc.removeClass('AJSHidden');
+                } else {
+                    src = getIconImagePath(cur.mimetype);
+                    ajsc.addClass('AJSHidden');
+                }
+                var img = elem('AJSUploadPreview');
+                img.src = src;
+                $('#AJSUploadPreview').removeClass('AJSTransparent');//.addClass('AJSOpaque');
+            } else {
+                resetToUpload();
+            }
+        };
+        
+        /**
+         * Get the object that represent the uploaded file that is currently being worked with
+         * @param {boolean} gotoend
+         * @returns {object(plain)} The object representing the uploaded file being worked with
+         */
+         T.getCurr = function(gotoend) {
+            if (gotoend) {
+                T.currentupload = T.uploads.length  - 1;
+                return end(T.uploads);
+            } else {
+                if (T.addingmore) {
+                    var res = end(T.uploads);
+                    T.currentupload = res.index - 1;
+                    return res;
+                } else {
+                    if (T.currentupload || T.currentupload === 0) {
+                        return T.uploads[T.currentupload];
+                    }
+                    T.currentupload = 0;
+                    return reset(T.uploads);
                 }
             }
+        };
+        
+        T.initBinding = function (){
+            
+            $('#AJSChooseText')[unbind](click)[click](function (){
+                $('#AJSFile')[click]();
+            });
+            
+            $('#AJSFile')[unbind](change)[change](T.filechanged);
+            
+        };
+        
+        T.draw = function (){
+            // Auto executing
+            var parent = T[par]();
+            T[addclass]('AJSHidden');
+            if (exists($('#AJS_' + T.id))) {
+                T.loadExisting();
+            } else {
+                parent[append](cHE.getInput('AJS_' + T.id, null, null, 'hidden'));
+            }
+            if (T.s.showPreviewOnForm) {
+                
+            } else {
+                parent[append](cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {'data-mandatory': !0}));
+            }
+            if (!exists($('#AJS'))) {
+                // Only create an ajaxStreamMain if one does not already exist in the DOM
+                body[append](cHE.getDiv(drawMainDialogue(), 'AJS'));
+                if (!fapi) {
+                    drawLegacy();
+                }
+            }
+            T.initBinding();
+        }();
+        count++;
+        return T;
+    };
+    
+    /**
+     * Get the index of a particular element in the DOM
+     * @param {object(jQuery)} jqelem The object to index
+     * @returns {int} The index of the element
+     */
+    function index(jqelem) {
+        var tagname = jqelem.prop('tagName');
+        return $(tagname).index(jqelem);
+    }    
+    
+    /**
+     * Draw the legacy elements
+     */
+     function drawLegacy() {
+//        self.legacysettings = JSON.stringify({
+//            maxsize: self.opts.maxFileSize,
+//            maxheight: self.opts.maxHeight,
+//            maxwidth: self.opts.maxWidth,
+//            uploaddir: self.opts.uploadTo,
+//            islegacy: !0,
+//            id: self.id
+//        });
+        if (!exists($('#AJSLegacy'))) {
+            var formsettings = {
+                method: 'post',
+//                action: self.opts.uploadScript,
+                enctype: 'multipart/form-data',
+                target: 'AJSIFrame'
+            };
+            $('body').append(
+                    cHE.getHtml('form', cHE.getInput('AJSLegacy', null, null, 'hidden'), 'AJSLegacyForm', 'AJSHidden', formsettings) +
+                    cHE.getHtml('iframe', null, 'AJSIFrame', 'AJSHidden', {name: 'AJSIFrame'})
+            );
         }
-        return n;
+    };
+
+
+    /**
+     * Draw the main AjaxStream dialogue
+     * @syntax drawMainDialogue();
+     * @returns {html}
+     */
+    function drawMainDialogue() {
+        var top = drawImagePreview();
+        top += drawViewPort();
+        top += drawUploader();
+        var outtext = cHE.getDiv(top, 'AJSMain');
+        return outtext;
+    }
+
+    /**
+     * Draw the preview into view
+     * @syntax drawImagePreview()
+     * @returns {html}
+     */
+    function drawImagePreview() {
+//            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
+//            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
+        var outtext = drawActionBar() + cHE.getHtml('img', null, 'AJSUploadPreview') + cHE.getDiv(
+            cHE.getSpan(null, 'AJSL', 'AJSLR asicons-arrow-left') + 
+            cHE.getSpan(null, 'AJSR', 'AJSLR asicons-arrow-right'), 'AJSLRContainer'
+        );
+        return cHE.getDiv(outtext, 'AJSImagePreview', 'AJSHidden');
+    }
+
+    /**
+     * 
+     * @returns {html}
+     */
+    function drawActionBar() {
+        return cHE.getDiv(
+            cHE.getDiv(null, 'AJSActionsOverlay') +    
+            cHE.getDiv(
+                cHE.getSpan(null, 'AJSAdd', 'asicons-plus', {title: tx('Add another file')}) +
+                cHE.getSpan(null, 'AJSChange', 'asicons-upload', {title: tx('Change file')}) +
+                cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) +
+                cHE.getSpan(null, 'AJSCrop', 'asicons-resize-shrink', {title: tx('Resize image')}) +
+                cHE.getSpan(null, 'AJSRemove', 'asicons-trash', {title: tx('Remove file')}) +
+                cHE.getSpan(null, 'AJSClose', 'asicons-cross', {title: tx('Close window')})), 
+        'AJSPreviewActions');
+    }
+
+    /**
+     * Draw the viewport section for the upload
+     * @syntax drawViewPort();
+     * @returns {html}
+     */
+    function drawViewPort() {
+        var outtext = '';
+        // Do stuff
+        return outtext;
+    }
+
+    /**
+     * Draw the actual upload section, i.e. the upload button and the 'drop zone'
+     * @syntax drawUploader();
+     * @returns {string|html}
+     */
+    function drawUploader() {
+        var choosefile = 
+                cHE.getSpan(tx('Choose file'), 'AJSChooseText', 'AJSBtn') + 
+                cHE.getHtml('img', null, 'AJSLoading', 'AJSHidden', {src: 'files/loader.gif', title: tx('Files are loading')});
+        var outtext = cHE.getDiv(
+                cHE.getInput('AJSFile', null, 'AJSHidden', 'file') +
+                cHE.getDiv(choosefile, 'AJSChooseFile'), 'AJSChooseSection');
+        outtext += cHE.getDiv(tx('DROP'), 'AJSDropZone', 'AJSHidden');
+        return cHE.getDiv(outtext, 'AJSUploadSection');
     }
     
     /**
-     * Merge two objects
-     * @param {object} to The object that we are merging in to
-     * @param {object} from The object that we are merging from
-     * @returns {object} The merged object
-     */
-    function merge (to, from) {
-        for (var x in from) {
-            try {
-                if (!to[x]) {
-                    to[x] = from[x];
-                }
-            } catch (ex) {
-                console.warn(ex);
-                continue;
-            }
+    * @brief Translate a string using the supplied translation function
+    * @syntax tx(s [, arg1, arg2, ...])
+    * @param {string} s The input string, untranslated
+    * @returns {string} The translated string
+    */
+    if (typeof tx !== 'function') {
+        function tx(s) {
+            return s;
         }
-        return to;
+    }
+    
+    /**
+     * @brief Return the last element in an array
+     * @param {array} arr The array we will take from
+     * @returns {unknown} The last element in your array
+     */
+    function end (arr) {
+        return arr.slice(-1)[0];
+    };
+
+    /**
+     * A short hand alias to document.getElementById
+     * @param {string} id The html id of the element to look for
+     * @returns {object(DOMElement)}
+     */
+    function elem(id) {
+        return document.getElementById(id);
     }
 
     /**
-     * Determine whether a passed argument is an object or not
-     * @syntax is_object(test);
+     * @brief Determine whether a variable is an object
+     * @param {mixed} variable The variable to test
+     * @returns {boolean} True if the variable is an object
+     */
+    function is_object (variable) {
+        return Object.prototype.toString.call(variable) === '[object Object]';
+    }
+    
+    /**
+     * Determine whether a variable is a boolean or not
      * @param {mixed} v Any variable
-     * @returns {Boolean} True if the passed argument is an object
+     * @returns {Boolean} True if the variable is a boolean
      */
-    function is_object(v) {
-        return typeof v === 'object';
+    function is_boolean(v) {
+        return typeof v === 'boolean';
     }
-
-    /**
-     * @brief Get the path of a given package
-     * @param {string} package The name of a package
-     * @returns {string} The path to the package
-     */
-    function getPackagePath(package) {
-        return root.const['PACKAGE_' + package.toUpperCase()];
-    }
-
-    /**
-     * @brief Determine whether a package defined in the root constants has been loaded
-     * @param {string} package The name of the package for which we will test
-     * @returns {boolean} True if the package has already been loaded into the DOM
-     */
-    function package_loaded(package) {
-        return $("script[src='" + getPackagePath(package) + "']").exists();
-    }
-
     /**
      * @brief AjaxStream exception handler
      * @param {string} exceptiontype The name of the exception to replace xxx in the string "Uncaught AjaxStream::xxx - message"
@@ -143,17 +459,6 @@
             }
         };
     }
-
-    /**
-     * @brief Translate a string using the supplied translation function
-     * @syntax tx(s [, arg1, arg2, ...])
-     * @param {string} s The input string, untranslated
-     * @returns {string} The translated string
-     */
-    function tx(s) {
-        s === s; // Null assignemnt: Dump NetBeans warning
-        return defaults.translateFunction.apply(null, arguments);
-    }
     
     /**
      * @brief Determine whether a variable is empty, i.e. if it has a value, or if it is an empty array/object
@@ -162,197 +467,10 @@
      * @notes Function emulates the same behaviour as PHP's empty function
      */
     function empty (v) {
-        if (typeof v === undefined || !v || (is_array(v) && v.length === 0) || (is_object(v) && Object.size(v) === 0)) {
-            return true;
+        if (typeof v === undefined || !v || (is_array(v) && v[length] === 0) || (is_object(v) && objsize(v) === 0)) {
+            return !0;
         }
-        return false;
-    }
-    
-    /**
-     * Determine whether an object is of a particular type
-     * @param {type} obj The object to test
-     * @param {type} type The type to check against. NB: Case sensitive
-     * @returns {boolean} True if the tested variable is an object of the tested type
-     */
-    function is_a (obj, type) {
-        return Object.prototype.toString.call(obj) === '[object ' + type + ']';
-    };
-    
-    /**
-     * Determine whether a variable is a boolean or not
-     * @param {mixed} v Any variable
-     * @returns {Boolean} True if the variable is a boolean
-     */
-    function is_boolean(v) {
-        return typeof v === 'boolean';
-    }
-
-    /**
-     * Determine whether a variable is a function
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable refers to a function
-     */
-    function is_function (variable) {
-        return typeof variable === 'function';
-    };
-    
-    /**
-     * Decode a JSON string
-     * @syntax var obj = json_decode(jsonstring);<br/>var obj2 = json_decode(jsonstring, true);
-     * @param {string} str The json string to decode
-     * @param {boolea} toarray (optional) True to return the result as an array
-     * @returns {array|Array|Object}
-     */
-    function json_decode(str, toarray) {
-        var res = JSON.parse(str);
-        return res ? (toarray ? object_to_array(res) : res) : false;
-    }
-    
-    /**
-     * @brief Encode an object or an array into a JSON string
-     * @param {mixed} object The object or an array to turn into a JSON string
-     * @returns {string} A JSON string
-     */
-    function json_encode(object) {
-        var obj = object;
-        if (is_array(obj)) {
-            obj = {};
-            for (var i = 0, len = object.length; i < len; i++) {
-                if (!empty(object[i])) {
-                    obj[i] = object[i];
-                }
-            }
-        }
-        return JSON.stringify(obj);
-    }
-    
-    /**
-     * @brief Determine whether a variable is a regular expression
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable is a regular expression
-     */
-    var is_regex = is_regexp = function (variable) {
-        return Object.prototype.toString.call(variable) === '[object RegExp]';
-    };
-
-    /**
-     * @brief Determine whether a variable is an object
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable is an object
-     */
-    function is_object (variable) {
-        return Object.prototype.toString.call(variable) === '[object Object]';
-    };
-    
-    /**
-     * @brief Convert an object into an array
-     * @param {object} obj The object to convert
-     * @returns {array} The array as an object
-     */
-    function object_to_array (obj) {
-        var output = [];
-        for (var x in obj) {
-            if (obj.hasOwnProperty(x)) {
-                output.push(obj[x]);
-            }
-        }
-        return output;
-    };
-
-    /**
-     * @brief Determine whether a variable is an array
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable is an array
-     */
-    function is_array(variable) {
-        return Object.prototype.toString.call(variable) === '[object Array]';
-    };
-    
-    /**
-     * @brief Return the first element in an array
-     * @param {array} arr The array that we will take from
-     * @returns {unknown} The first element in your array
-     */
-    function reset (arr) {
-        if (arr[0]) {
-            return arr[0];
-        } else {
-            for (var x in arr) {
-                if (arr.hasOwnProperty(x)) {
-                    // Return the first one
-                    return arr[x];
-                }
-            }
-        }
-    };
-    
-    /**
-     * @brief Return the last element in an array
-     * @param {array} arr The array we will take from
-     * @returns {unknown} The last element in your array
-     */
-    function end (arr) {
-        return arr.slice(-1)[0];
-    };
-    
-    /**
-     * @brief Determine whether a value exists in an array
-     * @param {array} arr The array to look in
-     * @param {mixed} lookfor The array value to look for
-     * @returns {boolean} True if the item being searched for is in the array
-     */
-    function in_array (arr, lookfor) {
-        return arr.indexOf(lookfor) > -1;
-    };
-    
-    function unset (arr, index) {
-        arr.splice(index, 1);
-    }
-
-    if (!is_function(Object.size)) {
-        /**
-         * @brief Function returns the size of an object. Not used Object.prototype.length as per warning from the Stackoverflow community
-         * @param {Object} obj The object that we will be annalysing
-         * @returns {Number} The size of the Object
-         */
-        Object.size = function(obj) {
-            var size = 0;
-            for (var okey in obj) {
-                if (obj.hasOwnProperty(okey))
-                    size++;
-            }
-            return Number(size);
-        };
-    }
-
-    /**
-     * @brief Determine whether an element exists or not
-     * @param {Object(DOMElement)} obj The element to test
-     * @returns {Boolean} True if the element exists
-     */
-    function exists (obj) {
-        return obj.length > 0;
-    };
-
-    if (!is_function(String.trim)) {
-        /**
-         * @brief Trim white space from the end of a string
-         * @returns {String} The trimmed string
-         */
-        String.prototype.trim = function() {
-            return this.replace(/^\s+|\s+$/g, '');
-        };
-    }
-
-    /**
-     * Emulate PHP's array_unshift function, i.e. push variables to the front of an array
-     * @syntax array_unshift(array, arg1 [, arg2, ...])
-     * @param {type} arr
-     * @returns {unresolved}
-     */
-    function array_unshift(arr) {
-        var temp = Array.prototype.slice.call(arguments, 1);
-        return temp.concat(arr);
+        return !1;
     }
     
     /**
@@ -368,16 +486,15 @@
                 var canvas = document.createElement('canvas');
                 return !!(canvas.getContext && canvas.getContext('2d'));
             case 'filereader':
-                return Boolean(window.FileReader);
+                return Boolean(win.FileReader);
             case 'file':
-                return Boolean(window.File);
+                return Boolean(win.File);
             case 'filelist':
-                return Boolean(window.FileList);
+                return Boolean(win.FileList);
             case 'blob':
-                return Boolean(window.Blob);
+                return Boolean(win.Blob);
             case 'fileapi':
-                return false;
-//                return !Boolean(window.Blob || window.File || window.FileList || window.FileReader);
+                return Boolean(win.Blob || win.File || win.FileList || win.FileReader);
             case 'drag':
                 return ('draggable' in document.createElement('span'));
             case 'formdata':
@@ -388,23 +505,95 @@
             case 'multiupload':
                 return ('multiple' in document.createElement('input'));
             default:
-                throw self.exception('AjaxStream Error', ['This function cannot be used to test the feature "', test, '"'].join(''));
+                throw T.exception('AjaxStream Error', ['This function cannot be used to test the feature "', test, '"'].join(''));
         }
     };
 
     /**
-     * @brief Add custom functions to jQuery
+     * @brief Determine whether an element exists or not
+     * @param {Object(DOMElement)} obj The element to test
+     * @returns {Boolean} True if the element exists
      */
-    $.fn.extend({
-        /**
-         * @brief Determine whether a jQuery object of a given selector exists in the DOM
-         * @returns {Boolean} True if the element exists in the DOM
-         */
-        exists: function() {
-            return $(this).length > 0;
+    function exists (obj) {
+        return obj[length] > 0;
+    };
+    
+    /**
+     * Decode a JSON string
+     * @syntax var obj = json_decode(jsonstring);<br/>var obj2 = json_decode(jsonstring, true);
+     * @param {string} str The json string to decode
+     * @param {boolea} toarray (optional) True to return the result as an array
+     * @returns {array|Array|Object}
+     */
+    function json_decode(str, toarray) {
+        var res = JSON.parse(str);
+        return res ? (toarray ? object_to_array(res) : res) : !1;
+    }
+    
+    /**
+     * @brief Encode an object or an array into a JSON string
+     * @param {mixed} object The object or an array to turn into a JSON string
+     * @returns {string} A JSON string
+     */
+    function json_encode(object) {
+        var obj = object;
+        if (is_array(obj)) {
+            obj = {};
+            for (var i = 0, len = object[length]; i < len; i++) {
+                if (!empty(object[i])) {
+                    obj[i] = object[i];
+                }
+            }
         }
-    });
+        return JSON.stringify(obj);
+    }
 
+    /**
+     * @brief Determine whether a variable is an array
+     * @param {mixed} variable The variable to test
+     * @returns {boolean} True if the variable is an array
+     */
+    function is_array(variable) {
+        return Object.prototype.toString.call(variable) === '[object Array]';
+    }
+    
+    /**
+     * Determine the amount of items in an object
+     * @param {object} obj The object to test
+     * @returns {int} The amount of items in the object
+     */
+    function objsize (obj) {
+       var size = 0;
+        for (var okey in obj) {
+            if (obj.hasOwnProperty(okey))
+                size++;
+        }
+        return Number(size); 
+    }
+
+    /**
+     * Determine whether a variable is a function
+     * @param {mixed} variable The variable to test
+     * @returns {boolean} True if the variable refers to a function
+     */
+    function is_function (variable) {
+        return typeof variable === 'function';
+    }
+    
+    /**
+     * Get the id of a jQuery object
+     * @param {object(jQuery)} jqelem
+     * @returns {string} The id of the element
+     */
+    function id(jqelem) {
+        return jqelem.prop('id');
+    }
+    
+    $.ajaxStream = {
+        author: 'Luke Madhanga',
+        version: 0.02
+    };
+    
     function cHE() {
 
         var self = this;                ///< An alias to this
@@ -528,5 +717,5 @@
 
     }
     cHE = new cHE();
-
-})(jQuery);
+    
+})(jQuery, this, 0);
