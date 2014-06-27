@@ -61,7 +61,7 @@ class cAjaxStream {
         header('Content-Type:text/html; charset=utf-8');
         echo <<<JS
 <script type='text/javascript'>
-    window.parent.ajaxStreamLegacy.afterLegacyUpload($result);
+    window.parent.AJSLegacy.afterLegacyUpload($result);
 </script>            
 JS;
         exit;

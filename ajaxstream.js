@@ -100,6 +100,57 @@
         }
         
         T.id = [T.c, '_', id(T)].join('');
+        T.filedata = {};
+        
+        /**
+         * Perform the legacy upload
+         * @param {object(DOMElement)} input The input that has the file being uploaded
+         */
+        T.legacyUpload = function(input) {
+            var i = $(input),
+            parent = i.parent(),
+            clone = i.clone(),
+            file = input.files[0],
+            index = T.changingindex === false ? T[uploads][length] : T.changingindex;
+            T.filedata = {
+                name: file.name,
+                mimetype: file.type,
+                size: file.size,
+                newupload: true,
+                customFields: {},
+                index: index,
+                islegacy: true
+            };
+            i.prop({id: AJS+'FileLegacy', name: AJS+'FileLegacy'});
+            $(hAJS+'LegacyForm').append(i);
+            parent.append(clone);
+            window['AJSLegacy'] = $.ajaxStream.streams[T.id];
+            $(hAJS+'Legacy').val(JSON.stringify({
+                maxsize: T.s.maxFileSize,
+                maxheight: T.s.maxHeight,
+                maxwidth: T.s.maxWidth,
+                uploaddir: T.s.uploadTo,
+                islegacy: !0,
+                id: T.id
+            }));
+            $(hAJS+'LegacyForm').prop({action: T.s.uploadScript});
+            $(hAJS+'LegacyForm').submit();
+        };
+
+        /**
+         * What to after a file has been uploaded
+         * @param {object(plain)} results The results from our upload
+         */
+        T.afterLegacyUpload = function(results) {
+            if (results.moved) {
+//                var T = $.ajaxStream.streams[results.id];
+                T.filedata.src = results.location;
+//                T.initBinding();
+                T.afterFileRead(T.filedata, T.changingindex !== false);
+            } else {
+                alert(results.error);
+            }
+        };
         
         /**
          * The processing function for when the file input has registered a change event
@@ -130,7 +181,7 @@
                     T.process(filelist[0], T.changing, true);
                 }
             } else {
-                // @TODO Write fallback
+                T.legacyUpload(this);
             }
         };
         
@@ -484,14 +535,6 @@
      * Draw the legacy elements
      */
      function drawLegacy() {
-//        self.legacysettings = JSON.stringify({
-//            maxsize: self.opts.maxFileSize,
-//            maxheight: self.opts.maxHeight,
-//            maxwidth: self.opts.maxWidth,
-//            uploaddir: self.opts.uploadTo,
-//            islegacy: !0,
-//            id: self.id
-//        });
         if (!exists($(hAJS+'Legacy'))) {
             var formsettings = {
                 method: 'post',
@@ -695,7 +738,7 @@
             case 'blob':
                 return Boolean(win.Blob);
             case 'fileapi':
-                return Boolean(win.Blob || win.File || win.FileList || win.FileReader);
+                return !Boolean(win.Blob || win.File || win.FileList || win.FileReader);
             case 'drag':
                 return ('draggable' in document.createElement('span'));
             case 'formdata':
