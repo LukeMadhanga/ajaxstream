@@ -95,11 +95,7 @@
 }
 [id^='AJS'], [class^='AJS'] {font-family: sans-serif;}
 .AJSHidden {display: none !important;}
-.AJSTransparent {opacity: 0 !important;display: none;}
-.AJSOpaque {opacity: 1 !important;}
-.AJSDisabled {cursor: default;}
-.AJSDisabled:hover {background: initial !important;}
-#AJS {display: none;}
+/*#AJS {display: none;}*/
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
 #AJSDropZone {}
@@ -134,5 +130,3 @@
 #AJSPreviewActions > div > span:hover {background: #707070;}
 #AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
 #AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}
-.disabled {cursor: default;}
-.disabled:hover {background: initial !important;}
