@@ -124,7 +124,7 @@
             i.prop({id: AJS+'FileLegacy', name: AJS+'FileLegacy'});
             $(hAJS+'LegacyForm').append(i);
             parent.append(clone);
-            window['AJSLegacy'] = $.ajaxStream.streams[T.id];
+            win['AJSLegacy'] = $.ajaxStream.streams[T.id];
             $(hAJS+'Legacy').val(JSON.stringify({
                 maxsize: T.s.maxFileSize,
                 maxheight: T.s.maxHeight,
