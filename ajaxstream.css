@@ -114,12 +114,14 @@
 #AJSImagePreview {text-align: center;overflow: hidden;background: url(files/bg.jpg) center center;height: 100%;
                          box-sizing: border-box;border: solid thin #F9F9F9;position: relative;}
 #AJSImagePreview:hover > #AJSPreviewActions {top: 0;}
-.AJSLR {color: #000;position: absolute;cursor: pointer;background: #FFF;opacity: 0.05;
+#AJSImagePreview:hover > #AJSLRContainer > #AJSR {right: 0;}
+#AJSImagePreview:hover > #AJSLRContainer > #AJSL {left: 0;}
+.AJSLR {color: #000;position: absolute;cursor: pointer;background: #FFF;opacity: 0.05;width:50px;height:50px;
                -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;box-shadow: 0px 0px 1px #000;}
 .AJSLR:hover {opacity: 0.15;}
 #AJSLRContainer {position: absolute;top: 50%;font-size: 50px;margin: -25px 0 0;width: 100%;}
-#AJSR {right: 0;}
-#AJSL {left: 0;}
+#AJSR {right: -50px;-webkit-transition: right 0.4s;-moz-transition: right 0.4s;transition: right 0.4s;}
+#AJSL {left: -50px;-webkit-transition: left 0.4s;-moz-transition: left 0.4s;transition: left 0.4s;}
 #AJSClose {background: #A00000;opacity: 0.5;}
 #AJSClose:hover {opacity: 0.7;background: #A00000 !important;}
 #AJSPreviewActions {position: absolute;height: 40px;width: 100%;

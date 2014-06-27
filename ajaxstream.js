@@ -107,23 +107,17 @@
          * @param {object(DOMElement)} input The input that has the file being uploaded
          */
         T.legacyUpload = function(input) {
-            var i = $(input),
-            parent = i.parent(),
-            clone = i.clone(),
-            file = input.files[0],
-            index = T.changingindex === false ? T[uploads][length] : T.changingindex;
+            var file = input.files[0],
+            index = T.changing === !1 ? T[uploads][length] : T.changing;
             T.filedata = {
                 name: file.name,
                 mimetype: file.type,
                 size: file.size,
-                newupload: true,
+                newupload: !0,
                 customFields: {},
                 index: index,
-                islegacy: true
+                islegacy: !0
             };
-            i.prop({id: AJS+'FileLegacy', name: AJS+'FileLegacy'});
-            $(hAJS+'LegacyForm').append(i);
-            parent.append(clone);
             win['AJSLegacy'] = $.ajaxStream.streams[T.id];
             $(hAJS+'Legacy').val(JSON.stringify({
                 maxsize: T.s.maxFileSize,
@@ -146,7 +140,7 @@
 //                var T = $.ajaxStream.streams[results.id];
                 T.filedata.src = results.location;
 //                T.initBinding();
-                T.afterFileRead(T.filedata, T.changingindex !== false);
+                T.afterFileRead(T.filedata, T.changing !== !1);
             } else {
                 alert(results.error);
             }
@@ -388,11 +382,12 @@
             
             // @todo Possibly go vanilla?
             
-            var ajsfile = $(hAJS+'File');
+            var ajsfile = fapi ? $(hAJS+'File') : $(hAJS+'FileLegacy');
             
             $(hAJS+'ChooseText')[unbind](click)[click](function (){
                 var fa = {accept:T.s.accept};
                 T.addingmore = !0;
+                T.changing = !1;
                 if (T.s.maxFiles > 1) {
                     // Allow us to have multiple files
                     fa['multiple'] = !0;
@@ -425,6 +420,7 @@
                 // What to do when the 'change this file' button is clicked
                 T.changing = T.currentupload;
                 T.addingmore = !1;
+                console.log($._data(ajsfile[0],'events'));
                 ajsfile[click]();
             });
             
@@ -465,7 +461,7 @@
             
             $(hAJS+'Close')[unbind](click)[click](function () {
                 // Close the upload screen
-                $(hAJS+'').hide();
+                $(hAJS).hide();
             });
             
             $('[id^=AJSUploadBtn_]')[unbind](click)[click](function () {
@@ -479,9 +475,10 @@
                 T[uploads] = val[length] ? json_decode(val, !0) : [];
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
+                console.log($._data(ajsfile[0], 'events'));
                 if (!T[uploads][length]) {
                     // If there is nothing in the uploads, open the file select immediately
-                    $(hAJS+'File')[click]();
+                    ajsfile[click]();
                     T.addingmore = !0;
                 }
             });
@@ -543,7 +540,9 @@
                 target: AJS+'IFrame'
             };
             $('body').append(
-                    cHE.getHtml('form', cHE.getInput(AJS+'Legacy', null, null, 'hidden'), AJS+'LegacyForm', AJS+'Hidden', formsettings) +
+                    cHE.getHtml('form', 
+                        cHE.getInput(AJS+'Legacy', null, null, 'hidden') + 
+                        cHE.getInput(AJS+'FileLegacy', null, null, 'file'), AJS+'LegacyForm', AJS+'Hidden', formsettings) +
                     cHE.getHtml('iframe', null, AJS+'IFrame', AJS+'Hidden', {name: AJS+'IFrame'})
             );
         }
