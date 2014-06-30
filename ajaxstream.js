@@ -582,6 +582,7 @@
             if (T.s.useViewport && !$('script[src$="ajaxstreamviewport.js"]')[length] && T.s.loadRequiredFiles) {
                 // If we're using the viewport script and it is not already loaded and will not be loaded otherwise, load it
                 var s = document.createElement('script');
+                s.type = 'text/javascript';
                 s.src = 'ajaxstreamviewport.js';
                 s.onload = function () {
                     ajsvp.draw();
