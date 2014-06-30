@@ -69,10 +69,6 @@
         }
         var body = $('body'),
         fapi = browserCanDo('fileapi'),
-        constants = {
-            MAIN_MAX_HEIGHT: 540,
-            MAIN_MH_PCT: '45%'
-        },
         // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
         par = 'parent',
         addclass = 'addClass',
@@ -93,7 +89,7 @@
         T.loaded = 0;
         T[uploads] = [];
         T.addingmore = !1;
-        T.s = $.extend(defaults, opts);
+        T.s = $.extend($.extend({}, defaults), opts);
 
         /**
          * @brief Translate a string using the supplied translation function
@@ -123,7 +119,6 @@
                 mimetype: file.type,
                 size: file.size,
                 newupload: !0,
-                customFields: {},
                 index: index,
                 islegacy: !0
             };
@@ -203,7 +198,6 @@
                 var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
                 var index = changing ? i : T.currentlength;
                 var filedata =  {
-                    customFields: {},
                     index: index,
                     islegacy: !1,
                     mimetype: file.type,
@@ -344,9 +338,6 @@
                 canvas.attr({src: src});
             }
             // Hide the others but make this one visible
-            if (cur.resizedHeight < constants['MAIN_MAX_HEIGHT']) {
-                
-            }
             $((docanvas ? 'canvas':'img') + '[id^="AJSIMG_"]')[addclass](AJSHidden);
             canvas[rclass](AJSHidden);
         };
@@ -459,15 +450,19 @@
             
             var ajsfile = fapi ? $(hAJS+'File') : $(hAJS+'FileLegacy');
             
-            $(hAJS+'ChooseText')[unbind](click)[click](function (){
+            ajsfile[unbind](click)[click](function () {
                 var fa = {accept:T.s.accept};
-                T.addingmore = !0;
-                T[changing] = !1;
                 if (T.s.maxFiles > 1) {
                     // Allow us to have multiple files
                     fa['multiple'] = !0;
                 }
-                ajsfile[attr](fa)[click]();
+                $(this)[attr](fa);
+            });
+            
+            $(hAJS+'ChooseText')[unbind](click)[click](function (){
+                T.addingmore = !0;
+                T[changing] = !1;
+                ajsfile[click]();
             });
             
             ajsfile[unbind](change)[change](T.filechanged);
@@ -625,6 +620,7 @@
      */
     function drawMainDialogue() {
         var top = drawImagePreview() +
+        drawInfoBay() +         
         drawUploader();
         return cHE.getDiv(top, AJS+'Main');
     }
@@ -660,6 +656,19 @@
                 cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
                 cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
         AJS+'PreviewActions');
+    }
+    
+    /**
+     * Draw the information section
+     * @returns {html}
+     */
+    function drawInfoBay () {
+        var inner = cHE.getDiv(cHE.getSpan());
+        return cHE.getDiv(inner, AJS+'More', AJSHidden);
+    }
+    
+    function renderCustomFields() {
+        
     }
 
     /**
@@ -907,6 +916,10 @@
     
     $.ajaxStream = {
         author: 'Luke Madhanga',
+        consts: {
+            CF_TEXT: 1
+        },
+        customFields: [],
         images: {},
         license: 'MIT',
         streams: {},

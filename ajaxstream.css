@@ -132,3 +132,23 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
 #AJSPreviewActions > div > span:hover {background: #707070;}
 #AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
 #AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}
+
+
+
+
+#AJSMore > div {
+    position: absolute;
+    height: 100%;
+}
+#AJSInfo {
+    width: 30%;
+    border-right: solid thin #F1F1F1;
+}
+#AJSMore {
+    position: relative;
+    height: 100%;
+}
+#AJSVP {
+    width: 70%;
+    right: 0;
+}

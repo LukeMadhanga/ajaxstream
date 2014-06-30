@@ -15,7 +15,11 @@ echo <<<'HTML'
         </style>
         <script type='text/javascript'>
             $.ajaxStream.setDefaults({useViewport:true,loadRequiredFiles:true});
-            $(function (){$('#file').ajaxStream();$('#second').ajaxStream({maxFiles:2,allowedTypes:['image/*']});});
+            $.ajaxStream.customFields = [
+                {name: 'Caption', type:$.ajaxStream.const['CF_TEXT'], value: null},
+                {name: 'Credit', type:$.ajaxStream.const['CF_TEXT'], value: null}
+            ];
+            $(function (){$('#file').ajaxStream();$('#second').ajaxStream({maxFiles:2,accept:['image/*']});});
         </script>
     </head>
     <body>
