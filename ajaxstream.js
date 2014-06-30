@@ -32,11 +32,13 @@
         unbind = 'unbind',
         change = 'change',
         attr = 'attr',
-        uploads = 'uploads';
+        uploads = 'uploads',
+        currentupload = 'currentupload',
+        changing = 'changing';
         T.c = count;
-        T.currentupload = null;
+        T[currentupload] = null;
         T.currentlength = 0;
-        T.changing = !1;
+        T[changing] = !1;
         T.toload = 0;
         T.loaded = 0;
         T[uploads] = [];
@@ -108,7 +110,7 @@
          */
         T.legacyUpload = function(input) {
             var file = input.files[0],
-            index = T.changing === !1 ? T[uploads][length] : T.changing;
+            index = T[changing] === !1 ? T[uploads][length] : T[changing];
             T.filedata = {
                 name: file.name,
                 mimetype: file.type,
@@ -140,7 +142,7 @@
 //                var T = $.ajaxStream.streams[results.id];
                 T.filedata.src = results.location;
 //                T.initBinding();
-                T.afterFileRead(T.filedata, T.changing !== !1);
+                T.afterFileRead(T.filedata, T[changing] !== !1);
             } else {
                 alert(results.error);
             }
@@ -153,14 +155,14 @@
         T.filechanged = function (e) {
             var filelist = e.target.files;
             if (!filelist[length]) {
-                T.changing = !1;
+                T[changing] = !1;
                 return;
             }
             T.toload = filelist[length];
             if (fapi) {
                 $(hAJS+'ChooseText')[addclass](AJS+'Hidden');
                 $(hAJS+'Loading')[rclass](AJS+'Hidden');
-                if (T.changing === !1) {
+                if (T[changing] === !1) {
                     // This is a new file
                     var len = filelist[length];
                     var tlen = len + T[uploads][length];
@@ -172,7 +174,7 @@
                         T.process(filelist[i], i);
                     }
                 } else {
-                    T.process(filelist[0], T.changing, true);
+                    T.process(filelist[0], T[changing], true);
                 }
             } else {
                 T.legacyUpload(this);
@@ -273,8 +275,8 @@
                 } else {
                     ajslrc[addclass](AJS+'Hidden');
                 }
-                var gotoend = T.changing === !1;
-                T.changing = !1;
+                var gotoend = T[changing] === !1;
+                T[changing] = !1;
                 T.toload = T.loaded = 0;
                 T.displayUpload(null, gotoend);
             }
@@ -337,18 +339,18 @@
          */
          T.getCurr = function(gotoend) {
             if (gotoend) {
-                T.currentupload = T[uploads][length]  - 1;
+                T[currentupload] = T[uploads][length]  - 1;
                 return end(T[uploads]);
             } else {
                 if (T.addingmore) {
                     var res = end(T[uploads]);
-                    T.currentupload = res.index - 1;
+                    T[currentupload] = res.index - 1;
                     return res;
                 } else {
-                    if (T.currentupload || T.currentupload === 0) {
-                        return T[uploads][T.currentupload];
+                    if (T[currentupload] || T[currentupload] === 0) {
+                        return T[uploads][T[currentupload]];
                     }
-                    T.currentupload = 0;
+                    T[currentupload] = 0;
                     return reset(T[uploads]);
                 }
             }
@@ -361,15 +363,15 @@
         T.changePrev = function (goingleft) {
             var addition = goingleft ? -1 : 1;
             var cur;
-            if (T.currentupload + addition < 0) {
+            if (T[currentupload] + addition < 0) {
                 cur = end(T.uploads);
-                T.currentupload = T[uploads][length] - 1;
-            } else if (T.currentupload + addition > (T[uploads][length] - 1)) {
+                T[currentupload] = T[uploads][length] - 1;
+            } else if (T[currentupload] + addition > (T[uploads][length] - 1)) {
                 cur = reset(T[uploads]);
-                T.currentupload = 0;
+                T[currentupload] = 0;
             } else {
-                cur = T[uploads][T.currentupload + addition];
-                T.currentupload +=  addition;
+                cur = T[uploads][T[currentupload] + addition];
+                T[currentupload] +=  addition;
             }
             T.displayUpload(cur);
         };
@@ -387,7 +389,7 @@
             $(hAJS+'ChooseText')[unbind](click)[click](function (){
                 var fa = {accept:T.s.accept};
                 T.addingmore = !0;
-                T.changing = !1;
+                T[changing] = !1;
                 if (T.s.maxFiles > 1) {
                     // Allow us to have multiple files
                     fa['multiple'] = !0;
@@ -418,9 +420,8 @@
             
             $(hAJS+'Change')[unbind](click)[click](function () {
                 // What to do when the 'change this file' button is clicked
-                T.changing = T.currentupload;
+                T[changing] = T[currentupload];
                 T.addingmore = !1;
-                console.log($._data(ajsfile[0],'events'));
                 ajsfile[click]();
             });
             
@@ -440,7 +441,7 @@
                     var temp = [],
                     lrc = $(hAJS+'LRContainer');
                     for (var i = 0, len = T[uploads][length]; i < len; i++) {
-                        if (T[uploads][i] && i !== T.currentupload) {
+                        if (T[uploads][i] && i !== T[currentupload]) {
                             temp.push(T[uploads][i]);
                         }
                     }
@@ -475,7 +476,6 @@
                 T[uploads] = val[length] ? json_decode(val, !0) : [];
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
-                console.log($._data(ajsfile[0], 'events'));
                 if (!T[uploads][length]) {
                     // If there is nothing in the uploads, open the file select immediately
                     ajsfile[click]();
@@ -554,11 +554,10 @@
      * @returns {html}
      */
     function drawMainDialogue() {
-        var top = drawImagePreview();
-        top += drawViewPort();
-        top += drawUploader();
-        var outtext = cHE.getDiv(top, AJS+'Main');
-        return outtext;
+        var top = drawImagePreview() +
+        drawViewPort() +
+        drawUploader();
+        return cHE.getDiv(top, AJS+'Main');
     }
 
     /**
