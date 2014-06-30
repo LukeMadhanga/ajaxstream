@@ -8,8 +8,48 @@ class cAjaxStream {
     static $starttime;
     static $cleandir = true;
     
-    const MAX_FILENAME_LENGTH = 120;                            // The max length of a file name without the unixtime marker
-    const MAX_TIME_IN_UPLOADS = 200;                           // 2 hours in seconds
+    /**
+     * The max length of a file name without the unixtime marker
+     */
+    const MAX_FILENAME_LENGTH = 120;
+    /**
+     * Maximum time that a file can live in the upload directory (7200 seconds, 2 hours)
+     */
+    const MAX_TIME_IN_UPLOADS = 7200;
+    
+    // Error constants
+    /**
+     * There was no error
+     */
+    const UPLOAD_ERR_OK = 0; 
+    /**
+     * The file uploaded exceeds the PHP ini maximum file size
+     */
+    const UPLOAD_ERR_INI_SIZE = 1;
+    /**
+     * The file uploaded exceeds the form max file size
+     */
+    const UPLOAD_ERR_FORM_SIZE = 2;
+    /**
+     * The file was only partially uploaded
+     */
+    const UPLOAD_ERR_PARTIAL = 3;
+    /**
+     * No file was uploaded
+     */
+    const UPLOAD_ERR_NO_FILE = 4;
+    /**
+     * There is no temporary directory to upload to
+     */
+    const UPLOAD_ERR_NO_TMP_DIR = 6;
+    /**
+     * Write failed
+     */
+    const UPLOAD_ERR_CANT_WRITE = 7;
+    /**
+     * An unknown error caused the upload to fail
+     */
+    const UPLOAD_ERR_EXTENSION = 8;
     
     /**
      * Process an uploaded file
@@ -28,35 +68,40 @@ class cAjaxStream {
      * @param object(StdClass) $file The uploaded file object from the $_FILES super global
      */
     static function handleLegacy($file) {
-        self::setDestination();
-        if (self::$cleandir) {
-            self::cleanDir();
-        }
-        $filename = self::sanitiseFilename($file->name);
-        $destination = self::$settings->uploaddir . self::$starttime . "-{$filename}";
-        try {
-            $filepath = str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $destination);
-            $error = null;
-            $moved = move_uploaded_file($file->tmp_name, $destination);
-            if (!$moved) {
-                $lasterror = error_get_last();
-                $error = $lasterror['message'];
+        if ($file->error) {
+            // The error code is non-zero, i.e. there has been error
+            $result = json_encode(array('moved' => false, 'error' => self::getErrorMessage($file->error)));
+        } else {
+            self::setDestination();
+            if (self::$cleandir) {
+                self::cleanDir();
             }
-            if (preg_match("/image\/*/", $file->type)) {
-                $imagedata = getimagesize($destination);
-                if ($imagedata) {
-                    // Resize etc.
+            $filename = self::sanitiseFilename($file->name);
+            $destination = self::$settings->uploaddir . self::$starttime . "-{$filename}";
+            try {
+                $filepath = str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $destination);
+                $error = null;
+                $moved = move_uploaded_file($file->tmp_name, $destination);
+                if (!$moved) {
+                    $lasterror = error_get_last();
+                    $error = $lasterror['message'];
                 }
+                if (preg_match("/image\/*/", $file->type)) {
+                    $imagedata = getimagesize($destination);
+                    if ($imagedata) {
+                        // Resize etc.
+                    }
+                }
+                $result = json_encode(array(
+                    'location' => $filepath, 
+                    'moved' => $moved, 
+                    'error' => $error, 
+                    'type' => $file->type,
+                    'id' => self::$settings->id
+                ));
+            } catch (Exception $ex) {
+                $result = json_encode(array('moved' => false, 'error' => $ex->getMessage()));
             }
-            $result = json_encode(array(
-                'location' => $filepath, 
-                'moved' => $moved, 
-                'error' => $error, 
-                'type' => $file->type,
-                'id' => self::$settings->id
-            ));
-        } catch (Exception $ex) {
-            $result = json_encode(array('moved' => false, 'error' => $ex->getMessage()));
         }
         header('Content-Type:text/html; charset=utf-8');
         echo <<<JS
@@ -65,6 +110,30 @@ class cAjaxStream {
 </script>            
 JS;
         exit;
+    }
+    
+    /**
+     * Determine the error message to send back
+     * @param int $e The incident code
+     * @return string The error message
+     */
+    private static function getErrorMessage($e) {
+        switch ($e) {
+            case self::UPLOAD_ERR_INI_SIZE:
+                return 'The uploaded file exceeds the maximum set';
+            case self::UPLOAD_ERR_FORM_SIZE:
+                return 'The uploaded file exceeds the maximum set on the input form';
+            case self::UPLOAD_ERR_PARTIAL:
+                return 'The selected file was only partially uploaded';
+            case self::UPLOAD_ERR_NO_FILE:
+                return 'No file was uploaded';
+            case self::UPLOAD_ERR_NO_TMP_DIR:
+                return 'Server Error: Quote upload error 6';
+            case self::UPLOAD_ERR_CANT_WRITE:
+                return 'Server Error: Quote upload error 7';
+            case self::UPLOAD_ERR_EXTENSION:
+                return 'Server Error: Quote upload error 8';
+        }
     }
     
     /**

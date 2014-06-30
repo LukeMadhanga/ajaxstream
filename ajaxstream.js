@@ -174,7 +174,7 @@
                         T.process(filelist[i], i);
                     }
                 } else {
-                    T.process(filelist[0], T[changing], true);
+                    T.process(filelist[0], T[changing], !0);
                 }
             } else {
                 T.legacyUpload(this);
@@ -270,15 +270,22 @@
                 $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
                 $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
-                if (T[uploads][length] > 1) {
-                    ajslrc[rclass](AJS+'Hidden');
-                } else {
-                    ajslrc[addclass](AJS+'Hidden');
-                }
+                T.toggleLR();
                 var gotoend = T[changing] === !1;
                 T[changing] = !1;
                 T.toload = T.loaded = 0;
                 T.displayUpload(null, gotoend);
+            }
+        };
+        
+        /**
+         * Determine whether or not we should show the navigation arrows
+         */
+        T.toggleLR = function() {
+            if (T[uploads][length] > 1) {
+                $(hAJS+'LRContainer')[rclass](AJS+'Hidden');
+            } else {
+                $(hAJS+'LRContainer')[addclass](AJS+'Hidden');
             }
         };
         
@@ -300,9 +307,10 @@
                     src = T.getIconPath(cur.mimetype);
                     ajsc[addclass](AJS+'Hidden');
                 }
+                T.toggleLR();
                 var img = elem(AJS+'UploadPreview');
                 img.src = src;
-                $(hAJS+'UploadPreview')[rclass](AJS+'Transparent');//.addClass(AJS+'Opaque');
+                $(hAJS+'UploadPreview')[rclass](AJS+'Transparent');
             } else {
                 T.resetToUpload();
             }
