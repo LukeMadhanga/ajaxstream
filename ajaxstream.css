@@ -100,14 +100,14 @@
 .AJSBtn:hover {background: #DDD;}
 #AJSDropZone {}
 #AJSFile {}
-#AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;
-             padding: 10px;box-sizing: border-box;max-width: 960px; max-height: 540px;}
+#AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;padding: 10px;box-sizing: border-box;
+      max-width: 960px; max-height: 540px;}
 #AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
 #AJSUploadSection {position: relative;width: 100%;height: 100%;}
 #AJSMain {width: 100%;width: 100%;height: 100%;}
 #AJSLoading {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;}
 
-#AJSUploadPreview {max-height: 100%;cursor: move;opacity: 1;
+img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity: 1;
     -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;}
 
 

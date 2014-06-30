@@ -6,7 +6,53 @@
     AJS = 'AJS',
     hAJS = '#AJS',
     dAJS = '.AJS',
-    AJSHidden = 'AJSHidden';
+    AJSHidden = 'AJSHidden',
+    ef = function () {},
+    defaults = {
+        accept: ['*'],
+        allowFilters: !0,
+        fetchRequiredFiles: !1,
+        maxFileSize: 2097152,
+        maxFiles: 1,
+        iconPreviewWidth: 200,
+        iconPreviewHeight: 200,
+        maxHeight: 1024,
+        maxWidth: 1024,
+        onfilechanging: ef,
+        onfilechanged: ef,
+        onfileselected: ef,
+        onfilesloaded: ef,
+        onfilesloading: ef,
+        oninit: ef,
+        onlegacyuploadfail: ef,
+        onlegacyuploadfinish: ef,
+        onlegacyuploadstart: ef,
+        onsingleuploadfail: ef,
+        onsingleuploadfinish: ef,
+        onsingleuploadstart: ef,
+        onuploadfail: ef,
+        onuploadfinish: ef,
+        onuploadprogress: ef,
+        onuploadstart: ef,
+//            previewOrientation: root.const['PREVIEW_ORI_GRID'],
+        quality: 1,
+        resize: !0,
+        showPreviewOnForm: !1,
+        translateFunction: function(s) {
+            for (var i = 1; i < arguments[length]; i++) {
+                var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
+                s = s.replace(re, arguments[i]);
+            }
+            return s;
+        },
+        uploadScript: "upload.php",
+        uploadTo: "uploads",
+        uploadWithForm: !1,
+        useViewport: !1,
+        verbose: !1,
+        viewportHeight: 240,
+        viewportWidth: 240
+    };
     
     $.fn.ajaxStream = function (opts){
         /**
@@ -21,9 +67,12 @@
             });
             return T;
         }
-        var ef = function () {},
-        body = $('body'),
+        var body = $('body'),
         fapi = browserCanDo('fileapi'),
+        constants = {
+            MAIN_MAX_HEIGHT: 540,
+            MAIN_MH_PCT: '45%'
+        },
         // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
         par = 'parent',
         addclass = 'addClass',
@@ -44,50 +93,7 @@
         T.loaded = 0;
         T[uploads] = [];
         T.addingmore = !1;
-        T.s = $.extend({
-            accept: ['*'],
-            allowFilters: !0,
-            fetchRequiredFiles: !1,
-            maxFileSize: 2097152,
-            maxFiles: 1,
-            iconPreviewWidth: 200,
-            iconPreviewHeight: 200,
-            maxHeight: 1024,
-            maxWidth: 1024,
-            onfilechanging: ef,
-            onfilechanged: ef,
-            onfileselected: ef,
-            onfilesloaded: ef,
-            onfilesloading: ef,
-            oninit: ef,
-            onlegacyuploadfail: ef,
-            onlegacyuploadfinish: ef,
-            onlegacyuploadstart: ef,
-            onsingleuploadfail: ef,
-            onsingleuploadfinish: ef,
-            onsingleuploadstart: ef,
-            onuploadfail: ef,
-            onuploadfinish: ef,
-            onuploadprogress: ef,
-            onuploadstart: ef,
-//            previewOrientation: root.const['PREVIEW_ORI_GRID'],
-            resize: !0,
-            showPreviewOnForm: !1,
-            translateFunction: function(s) {
-                for (var i = 1; i < arguments[length]; i++) {
-                    var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
-                    s = s.replace(re, arguments[i]);
-                }
-                return s;
-            },
-            uploadScript: "upload.php",
-            uploadTo: "uploads",
-            uploadWithForm: !1,
-            useViewport: !1,
-            verbose: !1,
-            viewportHeight: 240,
-            viewportWidth: 240
-        }, opts);
+        T.s = $.extend(defaults, opts);
 
         /**
          * @brief Translate a string using the supplied translation function
@@ -223,7 +229,7 @@
                             src: undefined
                         };
                         filedata.base64 = null;
-                        $.ajaxStream.images[AJS+'IMG_' + T.id + '_img_' + index] = this;
+                        $.ajaxStream.images[AJS+'IMG_' + T.id + index] = this;
                         T.afterFileRead(filedata, changing, target);
                     };
                     img.src = dataURL;
@@ -310,10 +316,6 @@
                     ajsc[addclass](AJSHidden);
                 }
                 T.toggleLR();
-//                var img = elem(AJS+'UploadPreview');
-//                img.src = src;
-//                $(hAJS+'UploadPreview')[rclass](AJS+'Transparent');
-                
                 T.drawImage(cur, src);
             } else {
                 T.resetToUpload();
@@ -326,7 +328,7 @@
          * @param {string(path)} src The alternate src attribute if we are displaying the icon for a file (i.e. it is not an image)
          */
         T.drawImage = function (cur, src) {
-            var hid = AJS+'IMG_' + T.id + '_img_' + cur.index,
+            var hid = AJS+'IMG_' + T.id + cur.index,
             docanvas = fapi && cur.mimetype.match('image/*'),
             canvas = $('#'+hid);
             if (!canvas[length]) {
@@ -335,23 +337,25 @@
                 canvas = $('#' + hid);
             }
             
-            // Now set the src etc.
+            // Now set the src
             if (docanvas) {
                 imageToCanvas(canvas[0], cur, $.ajaxStream.images[hid]);
             } else {
                 canvas.attr({src: src});
             }
             // Hide the others but make this one visible
+            if (cur.resizedHeight < constants['MAIN_MAX_HEIGHT']) {
+                
+            }
             $((docanvas ? 'canvas':'img') + '[id^="AJSIMG_"]')[addclass](AJSHidden);
             canvas[rclass](AJSHidden);
         };
         
         /**
          * Render the image onto a canvas element
-         * @param {jqelem} canvas
-         * @param {object(plain)} cur
-         * @param {object(DOMElement)} img
-         * @returns {unresolved}
+         * @param {jqelem} canvas The canvas element
+         * @param {object(plain)} cur The object that describes the uploaded file we're working with
+         * @param {object(DOMElement)} img The img object for this uploaded file
          */
         function imageToCanvas(canvas, cur, img) {
             var width = img.width,
@@ -374,7 +378,7 @@
             cur.resizedHeight = canvas.height = height;
             var ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, width, height);
-            cur.base64 = canvas.toDataURL("image/jpeg", 1); // get the data from canvas as 70% JPG (can be also PNG, etc.)
+            cur.base64 = canvas.toDataURL("image/jpeg", T.s.quality);
         }
         
         /**
@@ -507,24 +511,21 @@
             $(hAJS+'Remove')[unbind](click)[click](function () {
                 if (confirm(tx('Are you sure you want to delete this file?'))) {
                     // Remove the file by re-indexing the uploads array
-                    var temp = [],
-                    lrc = $(hAJS+'LRContainer');
+                    var temp = [];
                     for (var i = 0, len = T[uploads][length]; i < len; i++) {
                         if (T[uploads][i] && i !== T[currentupload]) {
                             temp.push(T[uploads][i]);
                         }
                     }
+                    // Remove the image for this upload
+                    $('#AJSIMG_' + T.id + T[currentupload]).remove();
                     T[uploads] = temp;
                     T.currentlength = T[uploads][length];
                     // Update the value for this input
                     $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                     $(hAJS+'UploadSection')[addclass](AJSHidden);
                     $(hAJS+'ImagePreview')[rclass](AJSHidden);
-                    if (T[uploads][length] > 1) {
-                        lrc[rclass](AJSHidden);
-                    } else {
-                        lrc[addclass](AJSHidden);
-                    }
+                    T.toggleLR();
                     T.displayUpload();
                 }
             });
@@ -573,10 +574,19 @@
             }
             if (!exists($(hAJS+''))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body[append](cHE.getDiv(drawMainDialogue(), AJS));
+                body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
                 if (!fapi) {
                     drawLegacy();
                 }
+            }
+            if (T.s.useViewport && !$('script[src$="ajaxstreamviewport.js"]')[length] && T.s.loadRequiredFiles) {
+                // If we're using the viewport script and it is not already loaded and will not be loaded otherwise, load it
+                var s = document.createElement('script');
+                s.src = 'ajaxstreamviewport.js';
+                s.onload = function () {
+                    ajsvp.draw();
+                };
+                $('head').append(s);
             }
             T.initBinding();
         }();
@@ -585,17 +595,7 @@
         $.ajaxStream.streams[T.id] = T;
         count++;
         return T;
-    };
-    
-    /**
-     * Get the index of a particular element in the DOM
-     * @param {object(jQuery)} jqelem The object to index
-     * @returns {int} The index of the element
-     */
-    function index(jqelem) {
-        var tagname = jqelem[prop]('tagName');
-        return $(tagname).index(jqelem);
-    }    
+    };  
     
     /**
      * Draw the legacy elements
@@ -624,7 +624,6 @@
      */
     function drawMainDialogue() {
         var top = drawImagePreview() +
-        drawViewPort() +
         drawUploader();
         return cHE.getDiv(top, AJS+'Main');
     }
@@ -646,7 +645,7 @@
     }
 
     /**
-     * 
+     * Draw the top bar of the uploader where the action buttons will be stored
      * @returns {html}
      */
     function drawActionBar() {
@@ -660,17 +659,6 @@
                 cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
                 cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
         AJS+'PreviewActions');
-    }
-
-    /**
-     * Draw the viewport section for the upload
-     * @syntax drawViewPort();
-     * @returns {html}
-     */
-    function drawViewPort() {
-        var outtext = '';
-        // Do stuff
-        return outtext;
     }
 
     /**
@@ -921,6 +909,9 @@
         images: {},
         license: 'MIT',
         streams: {},
+        setDefaults: function (opts) {
+            defaults = $.extend(defaults, opts);
+        },
         submit: function () {
             // Iterate through each stream, and save them as base64
         },
