@@ -5,7 +5,8 @@
     prop = 'prop',
     AJS = 'AJS',
     hAJS = '#AJS',
-    dAJS = '.AJS';
+    dAJS = '.AJS',
+    AJSHidden = 'AJSHidden';
     
     $.fn.ajaxStream = function (opts){
         /**
@@ -160,8 +161,8 @@
             }
             T.toload = filelist[length];
             if (fapi) {
-                $(hAJS+'ChooseText')[addclass](AJS+'Hidden');
-                $(hAJS+'Loading')[rclass](AJS+'Hidden');
+                $(hAJS+'ChooseText')[addclass](AJSHidden);
+                $(hAJS+'Loading')[rclass](AJSHidden);
                 if (T[changing] === !1) {
                     // This is a new file
                     var len = filelist[length];
@@ -196,14 +197,14 @@
                 var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
                 var index = changing ? i : T.currentlength;
                 var filedata =  {
-                    name: file.name,
-                    src: dataURL,
-                    mimetype: file.type,
-                    size: file.size,
-                    newupload: !0,
                     customFields: {},
                     index: index,
-                    islegacy: !1
+                    islegacy: !1,
+                    mimetype: file.type,
+                    name: file.name,
+                    newupload: !0,
+                    size: file.size,
+                    src: dataURL
                 };
                 if (!changing) {
                     T.currentlength++;
@@ -213,14 +214,16 @@
                     var img = new Image();
                     img.onload = function () {
                         var image = this;
-                        filedata.width = image.width;
-                        filedata.height = image.height;
+                        filedata.width = filedata.resizedWidth = image.width;
+                        filedata.height = filedata.resizedHeight = image.height;
                         filedata.viewport = {
                             left: undefined,
                             right: undefined,
                             width: undefined,
                             src: undefined
                         };
+                        filedata.base64 = null;
+                        $.ajaxStream.images[AJS+'IMG_' + T.id + '_img_' + index] = this;
                         T.afterFileRead(filedata, changing, target);
                     };
                     img.src = dataURL;
@@ -265,11 +268,10 @@
         T.attemptProgression = function () {
             T.loaded++;
             if (T.loaded === T.toload) {
-                var ajslrc = $(hAJS+'LRContainer');
 //                T.callSelfEvent('onfilesloaded', target, {total: T.toload, loaded: T.loaded + 1, pseudoTarget: inputs[T.id]});
                 $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
-                $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
-                $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
+                $(hAJS+'UploadSection')[addclass](AJSHidden);
+                $(hAJS+'ImagePreview')[rclass](AJSHidden);
                 T.toggleLR();
                 var gotoend = T[changing] === !1;
                 T[changing] = !1;
@@ -283,9 +285,9 @@
          */
         T.toggleLR = function() {
             if (T[uploads][length] > 1) {
-                $(hAJS+'LRContainer')[rclass](AJS+'Hidden');
+                $(hAJS+'LRContainer')[rclass](AJSHidden);
             } else {
-                $(hAJS+'LRContainer')[addclass](AJS+'Hidden');
+                $(hAJS+'LRContainer')[addclass](AJSHidden);
             }
         };
         
@@ -302,19 +304,78 @@
                 var src = cur.src;
                 var ajsc = $(hAJS+'Crop');
                 if (cur.mimetype.match('image/*')) {
-                    ajsc[rclass](AJS+'Hidden');
+                    ajsc[rclass](AJSHidden);
                 } else {
                     src = T.getIconPath(cur.mimetype);
-                    ajsc[addclass](AJS+'Hidden');
+                    ajsc[addclass](AJSHidden);
                 }
                 T.toggleLR();
-                var img = elem(AJS+'UploadPreview');
-                img.src = src;
-                $(hAJS+'UploadPreview')[rclass](AJS+'Transparent');
+//                var img = elem(AJS+'UploadPreview');
+//                img.src = src;
+//                $(hAJS+'UploadPreview')[rclass](AJS+'Transparent');
+                
+                T.drawImage(cur, src);
             } else {
                 T.resetToUpload();
             }
         };
+        
+        /**
+         * Draw the uploaded image onto a canvas (or display it using an &lt;img/&gt; tag if the file api is not supported)
+         * @param {object(plain)} cur The object that represents the current file that we are working with
+         * @param {string(path)} src The alternate src attribute if we are displaying the icon for a file (i.e. it is not an image)
+         */
+        T.drawImage = function (cur, src) {
+            var hid = AJS+'IMG_' + T.id + '_img_' + cur.index,
+            docanvas = fapi && cur.mimetype.match('image/*'),
+            canvas = $('#'+hid);
+            if (!canvas[length]) {
+                // A canvas doesn't exist for this upload so create one
+                $(hAJS+'LRContainer').before((docanvas ? '<canvas id="?"></canvas>' : '<img id="?" />').replace(/\?/, hid));
+                canvas = $('#' + hid);
+            }
+            
+            // Now set the src etc.
+            if (docanvas) {
+                imageToCanvas(canvas[0], cur, $.ajaxStream.images[hid]);
+            } else {
+                canvas.attr({src: src});
+            }
+            // Hide the others but make this one visible
+            $((docanvas ? 'canvas':'img') + '[id^="AJSIMG_"]')[addclass](AJSHidden);
+            canvas[rclass](AJSHidden);
+        };
+        
+        /**
+         * Render the image onto a canvas element
+         * @param {jqelem} canvas
+         * @param {object(plain)} cur
+         * @param {object(DOMElement)} img
+         * @returns {unresolved}
+         */
+        function imageToCanvas(canvas, cur, img) {
+            var width = img.width,
+            height = img.height;
+            // calculate the width and height, constraining the proportions
+            if (width > height) {
+                if (width > T.s.maxWidth) {
+                    //height *= max_width / width;
+                    height = Math.round(height *= T.s.maxWidth / width);
+                    width = T.s.maxWidth;
+                }
+            } else {
+                if (height > T.s.maxHeight) {
+                    //width *= max_height / height;
+                    width = Math.round(width *= T.s.maxHeight / height);
+                    height = T.s.maxHeight;
+                }
+            }
+            cur.resizedWidth = canvas.width = width;
+            cur.resizedHeight = canvas.height = height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            cur.base64 = canvas.toDataURL("image/jpeg", 1); // get the data from canvas as 70% JPG (can be also PNG, etc.)
+        }
         
         /**
          * Get the icon image
@@ -333,11 +394,11 @@
          */
         T.resetToUpload = function () {
             var lr = $(hAJS+'RContainer');
-            $(hAJS+'UploadSection')[rclass](AJS+'Hidden');
-            $(hAJS+'ImagePreview')[addclass](AJS+'Hidden');
-            $(hAJS+'ChooseText')[rclass](AJS+'Hidden');
-            $(hAJS+'Loading')[addclass](AJS+'Hidden');
-            T[uploads][length] ? lr[rclass](AJS+'Hidden') : lr[addclass](AJS+'Hidden');
+            $(hAJS+'UploadSection')[rclass](AJSHidden);
+            $(hAJS+'ImagePreview')[addclass](AJSHidden);
+            $(hAJS+'ChooseText')[rclass](AJSHidden);
+            $(hAJS+'Loading')[addclass](AJSHidden);
+            T[uploads][length] ? lr[rclass](AJSHidden) : lr[addclass](AJSHidden);
         };
         
         /**
@@ -457,12 +518,12 @@
                     T.currentlength = T[uploads][length];
                     // Update the value for this input
                     $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
-                    $(hAJS+'UploadSection')[addclass](AJS+'Hidden');
-                    $(hAJS+'ImagePreview')[rclass](AJS+'Hidden');
+                    $(hAJS+'UploadSection')[addclass](AJSHidden);
+                    $(hAJS+'ImagePreview')[rclass](AJSHidden);
                     if (T[uploads][length] > 1) {
-                        lrc[rclass](AJS+'Hidden');
+                        lrc[rclass](AJSHidden);
                     } else {
-                        lrc[addclass](AJS+'Hidden');
+                        lrc[addclass](AJSHidden);
                     }
                     T.displayUpload();
                 }
@@ -499,7 +560,7 @@
         T.draw = function (){
             // Auto executing
             var parent = T[par]();
-            T[addclass](AJS+'Hidden');
+            T[addclass](AJSHidden);
             if (exists($(hAJS+'_' + T.id))) {
                 T.loadExisting();
             } else {
@@ -550,8 +611,8 @@
             $('body').append(
                     cHE.getHtml('form', 
                         cHE.getInput(AJS+'Legacy', null, null, 'hidden') + 
-                        cHE.getInput(AJS+'FileLegacy', null, null, 'file'), AJS+'LegacyForm', AJS+'Hidden', formsettings) +
-                    cHE.getHtml('iframe', null, AJS+'IFrame', AJS+'Hidden', {name: AJS+'IFrame'})
+                        cHE.getInput(AJS+'FileLegacy', null, null, 'file'), AJS+'LegacyForm', AJSHidden, formsettings) +
+                    cHE.getHtml('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
             );
         }
     };
@@ -576,11 +637,12 @@
     function drawImagePreview() {
 //            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
 //            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
-        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE.getDiv(
+//        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE.getDiv(
+        var outtext = drawActionBar() + cHE.getDiv(
             cHE.getSpan(null, AJS+'L', AJS+'LR asicons-arrow-left') + 
             cHE.getSpan(null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
         );
-        return cHE.getDiv(outtext, AJS+'ImagePreview', AJS+'Hidden');
+        return cHE.getDiv(outtext, AJS+'ImagePreview', AJSHidden);
     }
 
     /**
@@ -619,11 +681,11 @@
     function drawUploader() {
         var choosefile = 
                 cHE.getSpan(tx('Choose file'), AJS+'ChooseText', AJS+'Btn') + 
-                cHE.getHtml('img', null, AJS+'Loading', AJS+'Hidden', {src: 'files/loader.gif', title: tx('Files are loading')});
+                cHE.getHtml('img', null, AJS+'Loading', AJSHidden, {src: 'files/loader.gif', title: tx('Files are loading')});
         var outtext = cHE.getDiv(
-                cHE.getInput(AJS+'File', null, AJS+'Hidden', 'file') +
+                cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
                 cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJS+'Hidden');
+        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJSHidden);
         return cHE.getDiv(outtext, AJS+'UploadSection');
     }
     
@@ -744,7 +806,7 @@
             case 'blob':
                 return Boolean(win.Blob);
             case 'fileapi':
-                return !Boolean(win.Blob || win.File || win.FileList || win.FileReader);
+                return Boolean(win.Blob || win.File || win.FileList || win.FileReader);
             case 'drag':
                 return ('draggable' in document.createElement('span'));
             case 'formdata':
@@ -856,8 +918,12 @@
     
     $.ajaxStream = {
         author: 'Luke Madhanga',
+        images: {},
         license: 'MIT',
         streams: {},
+        submit: function () {
+            // Iterate through each stream, and save them as base64
+        },
         version: 0.02
     };
     
