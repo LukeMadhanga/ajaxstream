@@ -70,6 +70,7 @@
         }
         var body = $('body'),
         fapi = browserCanDo('fileapi'),
+        canv = browserCanDo('canvas'),
         // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
         par = 'parent',
         addclass = 'addClass',
@@ -109,6 +110,16 @@
         T.filedata = {};
         
         /**
+         * Call one of the function events
+         * @syntax T.event(eventname, thisarg [, arg1 [, arg2 [,...]]])
+         * @param {string} eventname The name of the event to call, with the preceding 'on'. E.g. 'init'
+         * @param {mixed} thisarg The argument to be used as 'this' when the function is called
+         */
+        T.event = function (eventname, thisarg) {
+            return T.s['on'+eventname].apply(thisarg, Array.prototype.slice.call(arguments, 2));
+        };
+        
+        /**
          * Perform the legacy upload
          * @param {object(DOMElement)} input The input that has the file being uploaded
          */
@@ -124,6 +135,7 @@
                 index: index,
                 islegacy: !0
             };
+            // Make a global reference to 'T' so that we can call it from our iFrame
             win['AJSLegacy'] = ZZ.streams[T.id];
             $(hAJS+'Legacy').val(JSON.stringify({
                 maxsize: T.s.maxFileSize,
@@ -134,6 +146,7 @@
                 id: T.id
             }));
             $(hAJS+'LegacyForm').prop({action: T.s.uploadScript});
+            T.event('legacyuploadstart', input, {original: T, file:file});
             $(hAJS+'LegacyForm').submit();
         };
 
@@ -143,11 +156,14 @@
          */
         T.afterLegacyUpload = function(results) {
             if (results.moved) {
-//                var T = ZZ.streams[results.id];
+                // The file was successfully uploaded, so we can continue
                 T.filedata.src = results.location;
-//                T.initBinding();
+                T.event('legacyuploadfinish', null, {original: T, results:results});
                 T.afterFileRead(T.filedata, T[changing] !== !1);
+                win['AJSLegacy'] = null;
             } else {
+                // There was an error so alert the user
+                T.event('legacyuploadfail', null, {original: T, error:results.error, results: results});
                 alert(results.error);
             }
         };
@@ -163,7 +179,9 @@
                 return;
             }
             T.toload = filelist[length];
+            T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T});
             if (fapi) {
+                // We support the file api
                 $(hAJS+'ChooseText')[addclass](AJSHidden);
                 $(hAJS+'Loading')[rclass](AJSHidden);
                 if (T[changing] === !1) {
@@ -175,12 +193,15 @@
                         len = T.toload = T.s.maxFiles - T[uploads][length];
                     }
                     for (var i = 0; i < len; i++) {
+                        // Process each file on its own
                         T.process(filelist[i], i);
                     }
                 } else {
-                    T.process(filelist[0], T[changing], !0);
+                    T.event('filechanging', this, {originalEvent: e, file:filelist[0], current:T[uploads][T[changing]], original:T});
+                    T.process(filelist[0], T[changing], !0, this);
                 }
             } else {
+                // We don't support the file api, so upload this file the old way
                 T.legacyUpload(this);
             }
         };
@@ -244,39 +265,36 @@
          * @param {object(DOMElement)} target
          */
         T.afterFileRead = function (filedata, changing, target) {
+            var current = null;
             if (changing) {
-                // We're changing a file already in the upload list
-//                T.callSelfEvent('onfilechanged', target, {
-//                    new : filedata, 
-//                    old: T[uploads][filedata.index], 
-//                    target: target, 
-//                    pseudoTarget: inputs[T.id]
-//                });
+                current = T[uploads][filedata.index];
                 T[uploads][filedata.index] = filedata;
             } else {
                 T[uploads][filedata.index] ? T[uploads][filedata.index] = filedata : T[uploads].push(filedata);
             }
-//            T.callSelfEvent('onfilesloaded', target, {
-//                total: T.toload, 
-//                loaded: T.loaded + 1, 
-//                target: target, 
-//                pseudoTarget: inputs[T.id]
-//            });
-            T.attemptProgression(target);
+            T.attemptProgression(target, filedata.index, current);
         };
         
         /**
          * Attempt to progress. If files loaded equals files selected, progress, otherwise do nothing
+         * @param {object(DOMElement)} target The file input
+         * @param {int} index The index of the file changed in the upload array
+         * @param {object(plain)} old The old upload before it got changed
          */
-        T.attemptProgression = function () {
+        T.attemptProgression = function (target, index, old) {
             T.loaded++;
+            T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded});
             if (T.loaded === T.toload) {
-//                T.callSelfEvent('onfilesloaded', target, {total: T.toload, loaded: T.loaded + 1, pseudoTarget: inputs[T.id]});
                 $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS+'UploadSection')[addclass](AJSHidden);
                 $(hAJS+'ImagePreview')[rclass](AJSHidden);
                 T.toggleLR();
                 var gotoend = T[changing] === !1;
+                if (T[changing] === !1) {
+                    // Call the filechanged event
+                    T.event('filechanged', target, {original:T, new: T[uploads][index], old: old});
+                }
+                T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T[uploads]});
                 T[changing] = !1;
                 T.toload = T.loaded = 0;
                 T.displayUpload(null, gotoend);
@@ -301,17 +319,11 @@
          */
         T.displayUpload = function (cur, gotoend) {
             if (T[uploads][length]) {
+                // If we have uploaded files, show them
                 if (!cur) {
                     cur = T.getCurr(gotoend);
                 }
-                var src = cur.src;
-                var ajsc = $(hAJS+'Crop');
-                if (cur.mimetype.match('image/*')) {
-                    ajsc[rclass](AJSHidden);
-                } else {
-                    src = T.getIconPath(cur.mimetype);
-                    ajsc[addclass](AJSHidden);
-                }
+                var src = cur.mimetype.match('image/*') ? cur.src : T.getIconPath(cur.mimetype);
                 T.toggleLR();
                 T.drawImage(cur, src);
             } else {
@@ -326,7 +338,7 @@
          */
         T.drawImage = function (cur, src) {
             var hid = AJS+'IMG_' + T.id + cur.index,
-            docanvas = fapi && cur.mimetype.match('image/*'),
+            docanvas = fapi && canv && cur.mimetype.match('image/*'),
             canvas = $('#'+hid);
             if (!canvas[length]) {
                 // A canvas doesn't exist for this upload so create one
@@ -338,7 +350,7 @@
             if (docanvas) {
                 imageToCanvas(canvas[0], cur, ZZ.images[hid]);
             } else {
-                canvas.attr({src: src});
+                canvas[attr]({src: src});
             }
             // Hide the others but make this one visible
             $((docanvas ? 'canvas':'img') + '[id^="AJSIMG_"]')[addclass](AJSHidden);
@@ -642,6 +654,7 @@
                 $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport));
             }
             T.initBinding();
+            T.event('init', T, {original: T[0]});
         }();
         
         // Cache this object for later use
@@ -707,7 +720,6 @@
                 cHE.getSpan(null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
                 cHE.getSpan(null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
                 cHE.getSpan(null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
-                cHE.getSpan(null, AJS+'Crop', 'asicons-resize-shrink', {title: tx('Resize image')}) +
                 cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
                 cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
         AJS+'PreviewActions');
