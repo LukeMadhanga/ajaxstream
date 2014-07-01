@@ -208,19 +208,19 @@
         
         /**
          * Process the uploaded file
-         * @param {object(File)} file An item from a FileList object
+         * @param {object(File|plain)} file An item from a FileList object, or a plain object from a paste event
          * @param {int} i The index of this file in the uploads
          * @param {boolean} changing True if we are changing an existing file
          * @param {object(DOMElement)} target The original file input
+         * @param {null|object(Blob)} pasteblob A blob object from a paste event
          */
-        T.process = function (file, i, changing, target) {
+        T.process = function (file, i, changing, target, pasteblob) {
             var fr = new FileReader();
-            fr.readAsArrayBuffer(file);
-            fr.onload = function(e) {
-                var blob = new Blob([e.target.result], {type: file.type});
-                var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
-                var index = changing ? i : T.currentlength;
-                var filedata =  {
+            fr.onload = function (e) {
+                var blob = pasteblob || new Blob([e.target.result], {type: file.type}),
+                dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
+                index = changing ? i : T.currentlength,
+                filedata =  {
                     customFields: [],
                     index: index,
                     islegacy: !1,
@@ -256,6 +256,7 @@
                     T.afterFileRead(filedata, changing, target);
                 }
             };
+            fr.readAsArrayBuffer(pasteblob || file);
         };
         
         /**
@@ -529,6 +530,25 @@
                 ajsfile[click]();
             });
             
+            elem(AJS).onpaste = function (e) {
+                var items = (e.clipboardData || e.originalEvent.clipboardData).items,
+                blob = items[0].getAsFile();
+                if (blob && blob.type.match(T.s.accept) && T.currentlength < T.s.maxFiles) {
+                    // Only continue if the mimetype is acceptable, and if we haven't ran out of uploads for this input
+                    T.toload = 1;
+                    T.loaded = 0;
+                    // Get the date string and replace spaces with underscores and remove special characters
+                    var datestring = (new Date()).toString()[replace](/\ /g,'_')[replace](/(\+|\:|\(|\))/g, '');
+                    T.process({
+                        // Create a name for this file and set the file extension by stripping off 'master_type/' from 
+                        //  'master_type/ext'
+                        name: 'AjaxStream-Paste-At-'+datestring+'.'+(blob.type)[replace](/.+\/(.*)/,'$1'),
+                        type: blob.type,
+                        size: blob.size
+                    },T[currentupload] + 1,false, null,items[0].getAsFile());
+                }
+            };
+            
             ajsfile[unbind](change)[change](T.filechanged);
             
             $(hAJS+'')[unbind]('dbclick').dblclick(function () {
@@ -780,7 +800,7 @@
         var outtext = cHE.getDiv(
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
                 cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJSHidden);
+//        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJSHidden);
         return cHE.getDiv(outtext, AJS+'UploadSection');
     }
     
