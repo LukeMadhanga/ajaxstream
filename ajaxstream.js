@@ -7,6 +7,7 @@
     hAJS = '#AJS',
     dAJS = '.AJS',
     AJSHidden = 'AJSHidden',
+    replace = 'replace',
     ef = function () {},
     defaults = {
         accept: ['*'],
@@ -41,7 +42,7 @@
         translateFunction: function(s) {
             for (var i = 1; i < arguments[length]; i++) {
                 var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
-                s = s.replace(re, arguments[i]);
+                s = s[replace](re, arguments[i]);
             }
             return s;
         },
@@ -123,7 +124,7 @@
                 index: index,
                 islegacy: !0
             };
-            win['AJSLegacy'] = $.ajaxStream.streams[T.id];
+            win['AJSLegacy'] = ZZ.streams[T.id];
             $(hAJS+'Legacy').val(JSON.stringify({
                 maxsize: T.s.maxFileSize,
                 maxheight: T.s.maxHeight,
@@ -142,7 +143,7 @@
          */
         T.afterLegacyUpload = function(results) {
             if (results.moved) {
-//                var T = $.ajaxStream.streams[results.id];
+//                var T = ZZ.streams[results.id];
                 T.filedata.src = results.location;
 //                T.initBinding();
                 T.afterFileRead(T.filedata, T[changing] !== !1);
@@ -225,7 +226,7 @@
                             src: undefined
                         };
                         filedata.base64 = null;
-                        $.ajaxStream.images[AJS+'IMG_' + T.id + index] = this;
+                        ZZ.images[AJS+'IMG_' + T.id + index] = this;
                         T.afterFileRead(filedata, changing, target);
                     };
                     img.src = dataURL;
@@ -329,13 +330,13 @@
             canvas = $('#'+hid);
             if (!canvas[length]) {
                 // A canvas doesn't exist for this upload so create one
-                $(hAJS+'LRContainer').before((docanvas ? '<canvas id="?"></canvas>' : '<img id="?" />').replace(/\?/, hid));
+                $(hAJS+'LRContainer').before((docanvas ? '<canvas id="?"></canvas>' : '<img id="?" />')[replace](/\?/, hid));
                 canvas = $('#' + hid);
             }
             
             // Now set the src
             if (docanvas) {
-                imageToCanvas(canvas[0], cur, $.ajaxStream.images[hid]);
+                imageToCanvas(canvas[0], cur, ZZ.images[hid]);
             } else {
                 canvas.attr({src: src});
             }
@@ -442,9 +443,53 @@
             T.displayUpload(cur);
         };
         
+        /**
+         * Display the information for the current file
+         */
         T.showInfo = function (){
-            var upload = T[uploads][T[currentupload]];
-            $(hAJS+'Info>span').html(upload.name);
+            var upload = T[uploads][T[currentupload]],
+            fields = upload.customFields;
+            $(hAJS+'Main > div')[addclass](AJSHidden);
+            $(hAJS+'More')[rclass](AJSHidden);
+            // Set the title and also make underscores line-breakable
+            $(hAJS+'Info > span').html(upload.name[replace](/([\_|\.])/g,'&shy;$1&shy;'));
+            $(hAJS+'Info').css({width: T.s.useViewport ? '30%' : '100%'});
+            if (fields[length]) {
+                for (var i = 0; i < fields[length]; i++) {
+                    var obj = fields[i];
+                    $('[data-ajsfor="' + obj.field + '"]').val(obj.value);
+                }
+            }
+            if (T.s.useViewport) {
+                // Do the viewport stuff
+            }
+            // Set focus to the first field to indicate that it is editable
+            $(dAJS+'CFField:first > input').focus();
+        };
+        
+        /**
+         * Save the custom fields information and the viewport data
+         */
+        T.saveInfo = function () {
+            // Save the customFields information
+            var upload = T[uploads][T[currentupload]],
+            fields = ZZ.customFields,
+            output = [];
+            if (fields[length]) {
+                // We have some custom fields set so save the information
+                for (var i = 0; i < fields[length];i++) {
+                    var obj = fields[i];
+                    output.push({field: obj.name, value: $('[data-ajsfor="' + obj.name + '"]').val()});
+                    // Clear the field for later use
+                    $('[data-ajsfor="' + obj.name + '"]').val('');
+                }
+                upload.customFields = output;
+            }
+            if (T.s.useViewport) {
+                // Save the viewport data
+            }
+            $(hAJS+'Main > div')[addclass](AJSHidden);
+            $(hAJS+'ImagePreview')[rclass](AJSHidden);
         };
                 
         
@@ -510,12 +555,9 @@
                 T.changePrev();
             });
             
-            $(hAJS+'Edit')[unbind](click)[click](function () {
-                // The edit button has been clicked
-                $(hAJS+'Main > div')[addclass](AJSHidden);
-                $(hAJS+'More')[rclass](AJSHidden);
-                T.showInfo();
-            });
+            $(hAJS+'Edit')[unbind](click)[click](T.showInfo);
+            
+            $(hAJS+'ISave')[unbind](click)[click](T.saveInfo);
             
             $(hAJS+'Remove')[unbind](click)[click](function () {
                 if (confirm(tx('Are you sure you want to delete this file?'))) {
@@ -546,9 +588,9 @@
             
             $('[id^=AJSUploadBtn_]')[unbind](click)[click](function () {
                 // Determine what stream we want
-                var asid = $(this).prop('id').replace(AJS+'UploadBtn_', '');
+                var asid = $(this).prop('id')[replace](AJS+'UploadBtn_', '');
                 // Set it as the current object
-                T = $.ajaxStream.streams[asid];
+                T = ZZ.streams[asid];
 //                T.initBinding();
                 // Get the upload data for this input
                 var val = $(hAJS+'_' + T.id).val();
@@ -603,7 +645,7 @@
         }();
         
         // Cache this object for later use
-        $.ajaxStream.streams[T.id] = T;
+        ZZ.streams[T.id] = T;
         count++;
         return T;
     };  
@@ -615,7 +657,6 @@
         if (!exists($(hAJS+'Legacy'))) {
             var formsettings = {
                 method: 'post',
-//                action: self.opts.uploadScript,
                 enctype: 'multipart/form-data',
                 target: AJS+'IFrame'
             };
@@ -685,7 +726,7 @@
             attrs['style'] = 'width:30%;';
         }
         inner += cHE.getDiv(cHE.getSpan() + cHE.getDiv(renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
-        return cHE.getDiv(inner, AJS+'More', AJSHidden);
+        return cHE.getDiv(inner + cHE.getSpan(tx('Save'), AJS+'ISave'), AJS+'More', AJSHidden);
     }
     
     /**
@@ -694,8 +735,8 @@
      */
     function renderCustomFields() {
         var outtext = '',
-        cf = $.ajaxStream.customFields,
-        consts = $.ajaxStream.const;
+        cf = ZZ.customFields,
+        consts = ZZ.const;
         for (var i = 0; i < cf[length]; i++) {
             var obj = cf[i],
             type;
@@ -709,7 +750,7 @@
                     cHE.getDiv(cHE.getSpan(obj.name), null, AJS+'CFName') + 
                     cHE.getDiv(cHE.getInput(null, obj.value, null, type, {
                         placeholder: obj.name,
-                        'data-for': obj.name
+                        'data-ajsfor': obj.name
                     }), null, AJS+'CFField'));
         }
         return outtext;
@@ -839,14 +880,6 @@
                 // Test to see whether we have canvas support (from http://goo.gl/Fh8cCK)
                 var canvas = document.createElement('canvas');
                 return !!(canvas.getContext && canvas.getContext('2d'));
-            case 'filereader':
-                return Boolean(win.FileReader);
-            case 'file':
-                return Boolean(win.File);
-            case 'filelist':
-                return Boolean(win.FileList);
-            case 'blob':
-                return Boolean(win.Blob);
             case 'fileapi':
                 return Boolean(win.Blob || win.File || win.FileList || win.FileReader);
             case 'drag':
@@ -859,7 +892,7 @@
             case 'multiupload':
                 return ('multiple' in document.createElement('input'));
             default:
-                throw T.exception('AjaxStream Error', ['This function cannot be used to test the feature "', test, '"'].join(''));
+                throw exception('AjaxStream Error', ['This function cannot be used to test the feature "', test, '"'].join(''));
         }
     };
 
@@ -958,7 +991,10 @@
         return jqelem[prop]('id');
     }
     
-    $.ajaxStream = {
+    /**
+     * The global ajaxStream object
+     */
+    window.ZZ = $.ajaxStream = {
         author: 'Luke Madhanga',
         const: {
             CF_TEXT: 1
@@ -967,6 +1003,10 @@
         images: {},
         license: 'MIT',
         streams: {},
+        /**
+         * Set the defaults for all ajaxStream objects
+         * @param {object(plain)} opts The options that you want to set
+         */
         setDefaults: function (opts) {
             defaults = $.extend(defaults, opts);
         },

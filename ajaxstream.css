@@ -109,7 +109,6 @@
 img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity: 1;
     -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;}
 
-
 #AJSImagePreview {text-align: center;overflow: hidden;background: url(files/bg.jpg) center center;height: 100%;
                          box-sizing: border-box;border: solid thin #F9F9F9;position: relative;}
 #AJSImagePreview:hover > #AJSPreviewActions {top: 0;}
@@ -133,7 +132,7 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
 #AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}
 #AJSMore > div {
     position: absolute;
-    height: 100%;
+    height: 90%;
     box-sizing: border-box;
 }
 #AJSInfo {
@@ -164,4 +163,23 @@ font-weight: bold;
 font-size: 17px;
 padding: 0 0 15px;
 display: block;
+}
+#AJSISave {
+    position: absolute;
+    width: 100%;
+    height: 10%;
+    top: 90%;
+    border-top: solid thin #F1F1F1;
+    text-align: center;
+    box-sizing: border-box;
+    background: #F8F8F8;
+    cursor: pointer;
+    color: #555;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 13px;
+    padding: 12px;
+}
+#AJSISave:hover {
+color: #000;
 }
