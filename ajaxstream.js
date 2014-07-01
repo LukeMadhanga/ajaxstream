@@ -115,6 +115,7 @@
             var file = input.files[0],
             index = T[changing] === !1 ? T[uploads][length] : T[changing];
             T.filedata = {
+                customFields:[],
                 name: file.name,
                 mimetype: file.type,
                 size: file.size,
@@ -198,6 +199,7 @@
                 var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
                 var index = changing ? i : T.currentlength;
                 var filedata =  {
+                    customFields: [],
                     index: index,
                     islegacy: !1,
                     mimetype: file.type,
@@ -439,6 +441,11 @@
             }
             T.displayUpload(cur);
         };
+        
+        T.showInfo = function (){
+            var upload = T[uploads][T[currentupload]];
+            $(hAJS+'Info>span').html(upload.name);
+        };
                 
         
         /**
@@ -501,6 +508,13 @@
             $(hAJS+'R')[unbind](click)[click](function (){
                 // Go right
                 T.changePrev();
+            });
+            
+            $(hAJS+'Edit')[unbind](click)[click](function () {
+                // The edit button has been clicked
+                $(hAJS+'Main > div')[addclass](AJSHidden);
+                $(hAJS+'More')[rclass](AJSHidden);
+                T.showInfo();
             });
             
             $(hAJS+'Remove')[unbind](click)[click](function () {
@@ -567,22 +581,23 @@
             } else {
                 parent[append](cHE.getSpan(tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
             }
-            if (!exists($(hAJS+''))) {
-                // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
-                if (!fapi) {
-                    drawLegacy();
-                }
-            }
             if (T.s.useViewport && !$('script[src$="ajaxstreamviewport.js"]')[length] && T.s.loadRequiredFiles) {
                 // If we're using the viewport script and it is not already loaded and will not be loaded otherwise, load it
                 var s = document.createElement('script');
                 s.type = 'text/javascript';
                 s.src = 'ajaxstreamviewport.js';
                 s.onload = function () {
-                    ajsvp.draw();
+                    
                 };
                 $('head').append(s);
+            }
+            if (!exists($(hAJS+''))) {
+                // Only create an ajaxStreamMain if one does not already exist in the DOM
+                body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
+                if (!fapi) {
+                    drawLegacy();
+                }
+                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport));
             }
             T.initBinding();
         }();
@@ -611,7 +626,7 @@
                     cHE.getHtml('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
             );
         }
-    };
+    }
 
     /**
      * Draw the main AjaxStream dialogue
@@ -620,7 +635,6 @@
      */
     function drawMainDialogue() {
         var top = drawImagePreview() +
-        drawInfoBay() +         
         drawUploader();
         return cHE.getDiv(top, AJS+'Main');
     }
@@ -660,15 +674,45 @@
     
     /**
      * Draw the information section
+     * @param {boolean} hasvp True if current element has a viewport
      * @returns {html}
      */
-    function drawInfoBay () {
-        var inner = cHE.getDiv(cHE.getSpan());
+    function drawInfoBay (hasvp) {
+        var inner = '', 
+        attrs = {style: 'width:100%;'};
+        if (hasvp) {
+            inner = inner += cHE.getDiv(null, AJS+'VP');
+            attrs['style'] = 'width:30%;';
+        }
+        inner += cHE.getDiv(cHE.getSpan() + cHE.getDiv(renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
         return cHE.getDiv(inner, AJS+'More', AJSHidden);
     }
     
+    /**
+     * Render the custom fields defined by the user
+     * @returns {html}
+     */
     function renderCustomFields() {
-        
+        var outtext = '',
+        cf = $.ajaxStream.customFields,
+        consts = $.ajaxStream.const;
+        for (var i = 0; i < cf[length]; i++) {
+            var obj = cf[i],
+            type;
+            switch (obj.type) {
+                // @todo Implement more
+                case consts['CF_TEXT']:
+                default:
+                    type = 'text';
+            }
+            outtext += cHE.getDiv(
+                    cHE.getDiv(cHE.getSpan(obj.name), null, AJS+'CFName') + 
+                    cHE.getDiv(cHE.getInput(null, obj.value, null, type, {
+                        placeholder: obj.name,
+                        'data-for': obj.name
+                    }), null, AJS+'CFField'));
+        }
+        return outtext;
     }
 
     /**
@@ -916,7 +960,7 @@
     
     $.ajaxStream = {
         author: 'Luke Madhanga',
-        consts: {
+        const: {
             CF_TEXT: 1
         },
         customFields: [],

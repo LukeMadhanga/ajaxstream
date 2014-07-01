@@ -95,13 +95,12 @@
 }
 [id^='AJS'], [class^='AJS'] {font-family: sans-serif;}
 .AJSHidden {display: none !important;}
-#AJS {display: none;}
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
 #AJSDropZone {}
 #AJSFile {}
-#AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;padding: 10px;box-sizing: border-box;
-      max-width: 960px; max-height: 540px;}
+#AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;box-sizing: border-box;
+      max-width: 960px; max-height: 540px;display:none;}
 #AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
 #AJSUploadSection {position: relative;width: 100%;height: 100%;}
 #AJSMain {width: 100%;width: 100%;height: 100%;}
@@ -132,17 +131,15 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
 #AJSPreviewActions > div > span:hover {background: #707070;}
 #AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
 #AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}
-
-
-
-
 #AJSMore > div {
     position: absolute;
     height: 100%;
+    box-sizing: border-box;
 }
 #AJSInfo {
     width: 30%;
     border-right: solid thin #F1F1F1;
+    padding: 10px;
 }
 #AJSMore {
     position: relative;
@@ -151,4 +148,20 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
 #AJSVP {
     width: 70%;
     right: 0;
+}
+.AJSCFField > input {
+    width: 100%;
+    border: none;
+    border-bottom: solid thin #DEDEDE;
+    outline: none;
+    padding: 10px 0 0;
+}
+#AJSCF > div {
+padding: 10px 0;
+}
+#AJSInfo > span {
+font-weight: bold;
+font-size: 17px;
+padding: 0 0 15px;
+display: block;
 }
