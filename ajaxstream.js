@@ -82,10 +82,11 @@
         attr = 'attr',
         uploads = 'uploads',
         currentupload = 'currentupload',
-        changing = 'changing';
+        changing = 'changing',
+        currentlength = 'currentlength';
         T.c = count;
         T[currentupload] = null;
-        T.currentlength = 0;
+        T[currentlength] = 0;
         T[changing] = !1;
         T.toload = 0;
         T.loaded = 0;
@@ -219,9 +220,8 @@
                 fileready(null, pasteblob);
             } else {
                 var fr = new FileReader();
-                fr.readAsArrayBuffer(file);
-                console.log(fr);
                 fr.onload = fileready;
+                fr.readAsArrayBuffer(file);
             }
             /**
              * 
@@ -230,10 +230,10 @@
              * @param {object(Blob)} blobready A blob object if we already have one from a paste event
              */
             function fileready(e,blobready) {
-                var blob = blobready || new Blob([e.target.result], {type: file.type});
-                var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
-                var index = changing ? i : T.currentlength;
-                var filedata =  {
+                var blob = blobready || new Blob([e.target.result], {type: file.type}),
+                dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
+                index = changing ? i : T[currentlength],
+                filedata =  {
                     customFields: [],
                     index: index,
                     islegacy: !1,
@@ -244,7 +244,7 @@
                     src: dataURL
                 };
                 if (!changing) {
-                    T.currentlength++;
+                    T[currentlength]++;
                 }
                 if (file.type.match('image/*')) {
                     // If this is an image, then there is some extra information that we can add
@@ -269,9 +269,6 @@
                     T.afterFileRead(filedata, changing, target);
                 }
             };
-            if (!pasteblob) {
-                fr.readAsArrayBuffer(file);
-            }
         };
         
         /**
@@ -340,7 +337,7 @@
                     cur = T.getCurr(gotoend);
                 }
                 // Determine whether the add button should be disabled
-                $(hAJS+'Add')[T.currentlength + 1 > T.s.maxFiles ? addclass : rclass](AJS+'Disabled');
+                $(hAJS+'Add')[T[currentlength] + 1 > T.s.maxFiles ? addclass : rclass](AJS+'Disabled');
                 var src = cur.mimetype.match('image/*') ? cur.src : T.getIconPath(cur.mimetype);
                 T.toggleLR();
                 T.drawImage(cur, src);
@@ -531,6 +528,7 @@
             // @todo Possibly go vanilla?
             
             var ajsfile = fapi ? $(hAJS+'File') : $(hAJS+'FileLegacy');
+            var ajs = elem(AJS);
             
             ajsfile[unbind](click)[click](function () {
                 var fa = {accept:T.s.accept};
@@ -547,10 +545,10 @@
                 ajsfile[click]();
             });
             
-            elem(AJS).onpaste = function (e) {
+            ajs.onpaste = function (e) {
                 var items = (e.clipboardData || e.originalEvent.clipboardData).items,
                 blob = items[0].getAsFile();
-                if (blob && blob.type.match(T.s.accept) && T.currentlength < T.s.maxFiles) {
+                if (blob && blob.type.match(T.s.accept) && T[currentlength] < T.s.maxFiles) {
                     // Only continue if the mimetype is acceptable, and if we haven't ran out of uploads for this input
                     T.toload = 1;
                     T.loaded = 0;
@@ -565,6 +563,28 @@
                     },T[currentupload] + 1,false, null,items[0].getAsFile());
                 }
             };
+            
+            if (browserCanDo('drag')) {
+                // Add drag and drop functionality
+                ajs.ondragover = function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    $(hAJS+'DropZone')[rclass](AJSHidden);
+                };
+                ajs.ondragleave = function (e) {
+                    console.log(e);
+                    if (!$(e.target).closest('#AJS')[length]) {
+                        $(hAJS+'DropZone')[addclass](AJSHidden);
+                    };
+                };
+                ajs.ondrop = function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    $(hAJS+'DropZone')[addclass](AJSHidden);
+                    T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
+                };
+            }
             
             ajsfile[unbind](change)[change](T.filechanged);
             
@@ -620,7 +640,7 @@
                     // Remove the image for this upload
                     $('#AJSIMG_' + T.id + T[currentupload]).remove();
                     T[uploads] = temp;
-                    T.currentlength = T[uploads][length];
+                    T[currentlength] = T[uploads][length];
                     // Update the value for this input
                     $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                     $(hAJS+'UploadSection')[addclass](AJSHidden);
@@ -817,8 +837,7 @@
         var outtext = cHE.getDiv(
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
                 cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-//        outtext += cHE.getDiv(tx('DROP'), AJS+'DropZone', AJSHidden);
-        return cHE.getDiv(outtext, AJS+'UploadSection');
+        return cHE.getDiv(outtext, AJS+'UploadSection') + cHE.getDiv(cHE.getHtml('a', tx('DROP')), AJS+'DropZone', AJSHidden);
     }
     
     /**

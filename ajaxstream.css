@@ -99,19 +99,20 @@
 .AJSDisabled:hover {background: initial !important;}
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
-#AJSDropZone {}
+#AJSDropZone {background: url('files/dia.png');z-index: 10;position: absolute;width: 100%;height: 100%;top: 0;}
+#AJSDropZone > a {top: 50%;position: absolute;margin: -10px 0;font-size: 20px;}
 #AJSFile {}
 #AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;box-sizing: border-box;
       max-width: 960px; max-height: 540px;display:none;}
 #AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
 #AJSUploadSection {position: relative;width: 100%;height: 100%;}
-#AJSMain {width: 100%;width: 100%;height: 100%;}
+#AJSMain {width: 100%;height: 100%;position:relative;}
 #AJSLoading {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;}
 
 img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity: 1;
     -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;}
 
-#AJSImagePreview {text-align: center;overflow: hidden;background: url(files/bg.jpg) center center;height: 100%;
+#AJSImagePreview {text-align: center;overflow: hidden;background: url('files/bg.jpg') center center;height: 100%;
                          box-sizing: border-box;border: solid thin #F9F9F9;position: relative;}
 #AJSImagePreview:hover > #AJSPreviewActions {top: 0;}
 #AJSImagePreview:hover > #AJSLRContainer > #AJSR {right: 0;}
