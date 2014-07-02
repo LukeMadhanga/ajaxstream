@@ -215,12 +215,25 @@
          * @param {null|object(Blob)} pasteblob A blob object from a paste event
          */
         T.process = function (file, i, changing, target, pasteblob) {
-            var fr = new FileReader();
-            fr.onload = function (e) {
-                var blob = pasteblob || new Blob([e.target.result], {type: file.type}),
-                dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
-                index = changing ? i : T.currentlength,
-                filedata =  {
+            if (pasteblob) {
+                fileready(null, pasteblob);
+            } else {
+                var fr = new FileReader();
+                fr.readAsArrayBuffer(file);
+                console.log(fr);
+                fr.onload = fileready;
+            }
+            /**
+             * 
+             * @note Function had to be split up because we may already have a blob object (i.e. a paste event occurred)
+             * @param {object(Event)} e A DOM event for a file reader when it has loaded
+             * @param {object(Blob)} blobready A blob object if we already have one from a paste event
+             */
+            function fileready(e,blobready) {
+                var blob = blobready || new Blob([e.target.result], {type: file.type});
+                var dataURL = (win.URL || win.webkitURL).createObjectURL(blob);
+                var index = changing ? i : T.currentlength;
+                var filedata =  {
                     customFields: [],
                     index: index,
                     islegacy: !1,
@@ -256,7 +269,9 @@
                     T.afterFileRead(filedata, changing, target);
                 }
             };
-            fr.readAsArrayBuffer(pasteblob || file);
+            if (!pasteblob) {
+                fr.readAsArrayBuffer(file);
+            }
         };
         
         /**
@@ -324,6 +339,8 @@
                 if (!cur) {
                     cur = T.getCurr(gotoend);
                 }
+                // Determine whether the add button should be disabled
+                $(hAJS+'Add')[T.currentlength + 1 > T.s.maxFiles ? addclass : rclass](AJS+'Disabled');
                 var src = cur.mimetype.match('image/*') ? cur.src : T.getIconPath(cur.mimetype);
                 T.toggleLR();
                 T.drawImage(cur, src);

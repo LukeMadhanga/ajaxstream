@@ -95,6 +95,8 @@
 }
 [id^='AJS'], [class^='AJS'] {font-family: sans-serif;}
 .AJSHidden {display: none !important;}
+.AJSDisabled {color:#999 !important;cursor: default !important;}
+.AJSDisabled:hover {background: initial !important;}
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
 #AJSDropZone {}
