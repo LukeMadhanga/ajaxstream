@@ -1,4 +1,4 @@
-(function ($, win, count){
+(function ($, win, count, document){
     
     // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
     var length = 'length',
@@ -67,6 +67,9 @@
                 $(this).ajaxStream(opts);
             });
             return T;
+        } else if (!T[length]) {
+            // We have no objects return
+            return T;
         }
         var body = $('body'),
         fapi = browserCanDo('fileapi'),
@@ -101,6 +104,7 @@
          * @returns {string} The translated string
          */
         if (typeof tx !== 'undefined') {
+            // NB: This code was designed for a system that has a function tx that translates strings into another language
             function tx(s) {
                 s === s; // Null assignemnt: Dump NetBeans warning
                 return T.s.translateFunction.apply(null, arguments);
@@ -489,6 +493,16 @@
             }
             if (T.s.useViewport) {
                 // Do the viewport stuff
+                var img = ZZ.images['AJSIMG_' + T.id + T[currentupload]];
+                $(hAJS+'VPImg').attr({src: img.src, 'data-maxwidth': img.width});
+                $(hAJS+'VPC').streamBoundaries('updateOpts', {
+                    width: T.s.viewportWidth, 
+                    height: T.s.viewportHeight,
+                    bounds: {
+                        bottom: 240,
+                        right: 240
+                    }
+                });
             }
             // Set focus to the first field to indicate that it is editable
             $(dAJS+'CFField:first > input').focus();
@@ -566,23 +580,23 @@
             
             if (browserCanDo('drag')) {
                 // Add drag and drop functionality
-                ajs.ondragover = function(e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'copy';
-                    $(hAJS+'DropZone')[rclass](AJSHidden);
-                };
-                ajs.ondragleave = function (e) {
-                    console.log(e);
-                    if (!$(e.target).closest('#AJS')[length]) {
+                document.body.ondragover = function(e) {
+                    if ($(e.target).closest('#AJS')[length]) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        $(hAJS+'DropZone')[rclass](AJSHidden);
+                    } else {
                         $(hAJS+'DropZone')[addclass](AJSHidden);
-                    };
+                    }
                 };
-                ajs.ondrop = function(e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    $(hAJS+'DropZone')[addclass](AJSHidden);
-                    T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
+                document.body.ondrop = function(e) {
+                    if ($(e.target).closest('#AJS')[length]) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        $(hAJS+'DropZone')[addclass](AJSHidden);
+                        T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
+                    }
                 };
             }
             
@@ -692,23 +706,32 @@
             } else {
                 parent[append](cHE.getSpan(tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
             }
-            if (T.s.useViewport && !$('script[src$="ajaxstreamviewport.js"]')[length] && T.s.loadRequiredFiles) {
-                // If we're using the viewport script and it is not already loaded and will not be loaded otherwise, load it
-                var s = document.createElement('script');
-                s.type = 'text/javascript';
-                s.src = 'ajaxstreamviewport.js';
-                s.onload = function () {
-                    
-                };
-                $('head').append(s);
-            }
             if (!exists($(hAJS+''))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
                 body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
                 if (!fapi) {
                     drawLegacy();
                 }
-                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport));
+                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport, T.s.viewportWidth, T.s.viewportHeight));
+                if (T.s.useViewport) {
+                    // Apply the streamBoundaries plugin on the viewport window so that the user can play with the position of the
+                    //  image
+                    var viewport = $(hAJS+'VPC');
+                    viewport.streamBoundaries({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', thumbIsLarger: !0, orientation: '2d'});
+                    // Apply the streamBoundaries plugin on the viewport scroller
+                    $(hAJS+'VPS').streamBoundaries({onUpdate: function (e) {
+                            var minwidth = viewport.width(),
+                            img = $(hAJS+'VPImg'),
+                            maxwidth = img.data('maxwidth'),
+                            diff = maxwidth - minwidth;
+                            $(hAJS+'VPC').streamBoundaries('updateOpts', {
+                                thumbWidth: minwidth + (diff * e.px),
+                                bounds: {
+                                    top:0
+                                }
+                            });
+                    }});
+                }
             }
             T.initBinding();
             T.event('init', T, {original: T[0]});
@@ -783,7 +806,7 @@
     }
     
     /**
-     * Draw the information section
+     * Draw the information section (Custom fields and the viewport)
      * @param {boolean} hasvp True if current element has a viewport
      * @returns {html}
      */
@@ -791,7 +814,8 @@
         var inner = '', 
         attrs = {style: 'width:100%;'};
         if (hasvp) {
-            inner = inner += cHE.getDiv(null, AJS+'VP');
+            var vp = cHE.getDiv(cHE.getHtml('img', null, AJS+'VPImg'), AJS+'VPC') + cHE.getDiv(cHE.getDiv(null), AJS+'VPS');
+            inner += cHE.getDiv(vp, AJS+'VP');
             attrs['style'] = 'width:30%;';
         }
         inner += cHE.getDiv(cHE.getSpan() + cHE.getDiv(renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
@@ -828,7 +852,7 @@
     /**
      * Draw the actual upload section, i.e. the upload button and the 'drop zone'
      * @syntax drawUploader();
-     * @returns {string|html}
+     * @returns {html}
      */
     function drawUploader() {
         var choosefile = 
@@ -1208,4 +1232,4 @@
     }
     cHE = new cHE();
     
-})(jQuery, this, 0);
+})(jQuery, this, 0, document);

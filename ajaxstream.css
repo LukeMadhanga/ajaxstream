@@ -99,7 +99,7 @@
 .AJSDisabled:hover {background: initial !important;}
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
-#AJSDropZone {background: url('files/dia.png');z-index: 10;position: absolute;width: 100%;height: 100%;top: 0;}
+#AJSDropZone {background: url('files/dia.png');z-index: 30;position: absolute;width: 100%;height: 100%;top: 0;}
 #AJSDropZone > a {top: 50%;position: absolute;margin: -10px 0;font-size: 20px;}
 #AJSFile {}
 #AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;box-sizing: border-box;
@@ -144,3 +144,4 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
            box-sizing: border-box;background: #F8F8F8;cursor: pointer;color: #555;font-weight: bold;text-transform: uppercase;
            font-size: 13px;padding: 12px;}
 #AJSISave:hover {color: #000;}
+#AJSVPC {overflow: hidden;}
