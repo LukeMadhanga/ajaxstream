@@ -475,6 +475,26 @@
         };
         
         /**
+         * Get the base64 string of the viewport canvas element
+         * @param {object(plain)} obj The object that has the left, top and width properties of the viewport
+         * @returns {string(base64)|boolean(false)} The base64 of the viewport image, or false if the browser doesn't support 
+         *  the canvas element
+         */
+        T.getViewport64 = function (obj) {
+            if (canv) {
+                // The browser supports the canvas api
+                var canvas = document.createElement('canvas'),
+                img = elem(AJS+'VPImg'),
+                ctx = canvas.getContext('2d');
+                canvas.width = T.s.viewportWidth;
+                canvas.height = T.s.viewportHeight;
+                ctx.drawImage(img, obj.left, obj.top, obj.width, img.height);
+                return canvas.toDataURL('image/jpeg', T.s.quality);
+            }
+            return false;
+        };
+        
+        /**
          * Display the information for the current file
          */
         T.showInfo = function (){
@@ -493,11 +513,21 @@
             }
             if (T.s.useViewport) {
                 // Do the viewport stuff
-                var img = ZZ.images['AJSIMG_' + T.id + T[currentupload]];
-                $(hAJS+'VPImg').attr({src: img.src, 'data-maxwidth': img.width});
+                var img = ZZ.images['AJSIMG_' + T.id + T[currentupload]],
+                vp = upload.viewport;
+                $(hAJS+'VPImg').attr({src: img.src});
                 $(hAJS+'VPC').streamBoundaries('updateOpts', {
                     width: T.s.viewportWidth, 
-                    height: T.s.viewportHeight
+                    height: T.s.viewportHeight,
+                    thumbWidth: vp.width ? vp.width : T.s.viewportWidth
+                }).streamBoundaries('reposition', {x: vp.left, y: vp.top});
+                $(hAJS+'VPS').streamBoundaries('updateOpts', {
+                    onUpdate: function(e) {
+                        var diff = img.width - T.s.viewportWidth;
+                        $(hAJS + 'VPC').streamBoundaries('updateOpts', {thumbWidth: T.s.viewportWidth + (diff * e.px)});
+                    }
+                }).streamBoundaries('reposition', {
+                    x: (!vp.width ? 0 : ((vp.width - T.s.viewportWidth) / (img.width - T.s.viewportWidth) * 100)) + '%'
                 });
             }
             // Set focus to the first field to indicate that it is editable
@@ -524,14 +554,15 @@
             }
             if (T.s.useViewport) {
                 // Save the viewport data
-                var img = $(hAJS+'VPImg');
-                upload.viewport = {
-                    left: int(img.css('left')),
-                    top: int(img.css('top')),
-                    width: int(img.css('width'))
+                var img = $(hAJS+'VPImg'),
+                vpdata = {
+                    left: parseFloat(img.css('left')),
+                    top: parseFloat(img.css('top')),
+                    width: parseFloat(img.css('width'))
                 };
+                vpdata['src'] = T.getViewport64(vpdata);
+                upload.viewport = vpdata;
             }
-            console.log(upload);
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'ImagePreview')[rclass](AJSHidden);
         };
@@ -723,13 +754,6 @@
                     viewport.streamBoundaries({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', isViewport: !0, orientation: '2d'});
                     // Apply the streamBoundaries plugin on the viewport scroller
                     $(hAJS + 'VPS').streamBoundaries({
-                        onUpdate: function(e) {
-                            var minwidth = viewport.width(),
-                            img = $(hAJS + 'VPImg'),
-                            maxwidth = img.data('maxwidth'),
-                            diff = maxwidth - minwidth;
-                            $(hAJS + 'VPC').streamBoundaries('updateOpts', {thumbWidth: minwidth + (diff * e.px)});
-                        },
                         onFinish: function() {
                             $(hAJS + 'VPC').streamBoundaries('reposition');
                         }
@@ -1066,15 +1090,6 @@
                 size++;
         }
         return Number(size); 
-    }
-    
-    /**
-     * Get an integer from a string
-     * @param {string} val The string from which we will retrieve the number
-     * @returns {integer} An integer from the string
-     */
-    function int (val) {
-        return Number(val.replace(/\D+/g,''));
     }
     
     /**
