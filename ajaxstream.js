@@ -8,6 +8,12 @@
     dAJS = '.AJS',
     AJSHidden = 'AJSHidden',
     replace = 'replace',
+    getDiv = 'getDiv',
+    getSpan = 'getSpan',
+    getHtml = 'getHtml',
+    streamBoundaries = 'streamBoundaries',
+    name = 'name',
+    viewportWidth = 'viewportWidth',
     ef = function () {},
     defaults = {
         accept: ['*'],
@@ -72,8 +78,9 @@
             return T;
         }
         var body = $('body'),
-        fapi = browserCanDo('fileapi'),
-        canv = browserCanDo('canvas'),
+        fapi = !!(win.Blob || win.File || win.FileList || win.FileReader),
+        canvtest = document.createElement('canvas'),
+        canv = !!(canvtest.getContext && canvtest.getContext('2d')),
         // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
         par = 'parent',
         addclass = 'addClass',
@@ -111,7 +118,7 @@
             }
         }
         
-        T.id = [T.c, '_', id(T)].join('');
+        T.id = [T.c, '_', T[prop]('id')].join('');
         T.filedata = {};
         
         /**
@@ -133,7 +140,7 @@
             index = T[changing] === !1 ? T[uploads][length] : T[changing];
             T.filedata = {
                 customFields:[],
-                name: file.name,
+                name: file[name],
                 mimetype: file.type,
                 size: file.size,
                 newupload: !0,
@@ -150,7 +157,7 @@
                 islegacy: !0,
                 id: T.id
             }));
-            $(hAJS+'LegacyForm').prop({action: T.s.uploadScript});
+            $(hAJS+'LegacyForm')[prop]({action: T.s.uploadScript});
             T.event('legacyuploadstart', input, {original: T, file:file});
             $(hAJS+'LegacyForm').submit();
         };
@@ -242,7 +249,7 @@
                     index: index,
                     islegacy: !1,
                     mimetype: file.type,
-                    name: file.name,
+                    name: file[name],
                     newupload: !0,
                     size: file.size,
                     src: dataURL
@@ -302,7 +309,6 @@
             T.loaded++;
             T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded});
             if (T.loaded === T.toload) {
-                $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS+'UploadSection')[addclass](AJSHidden);
                 $(hAJS+'ImagePreview')[rclass](AJSHidden);
                 T.toggleLR();
@@ -442,7 +448,7 @@
             } else {
                 if (T.addingmore) {
                     var res = end(T[uploads]);
-                    T[currentupload] = res.index - 1;
+                    T[currentupload] = res.index;
                     return res;
                 } else {
                     if (T[currentupload] || T[currentupload] === 0) {
@@ -486,7 +492,7 @@
                 var canvas = document.createElement('canvas'),
                 img = elem(AJS+'VPImg'),
                 ctx = canvas.getContext('2d');
-                canvas.width = T.s.viewportWidth;
+                canvas.width = T.s[viewportWidth];
                 canvas.height = T.s.viewportHeight;
                 ctx.drawImage(img, obj.left, obj.top, obj.width, img.height);
                 return canvas.toDataURL('image/jpeg', T.s.quality);
@@ -503,7 +509,7 @@
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'More')[rclass](AJSHidden);
             // Set the title and also make underscores line-breakable
-            $(hAJS+'Info > span').html(upload.name[replace](/([\_|\.])/g,'&shy;$1&shy;'));
+            $(hAJS+'Info > span').html(upload[name][replace](/([\_|\.])/g,'&shy;$1&shy;'));
             $(hAJS+'Info').css({width: T.s.useViewport ? '30%' : '100%'});
             if (fields[length]) {
                 for (var i = 0; i < fields[length]; i++) {
@@ -516,18 +522,18 @@
                 var img = ZZ.images['AJSIMG_' + T.id + T[currentupload]],
                 vp = upload.viewport;
                 $(hAJS+'VPImg').attr({src: img.src});
-                $(hAJS+'VPC').streamBoundaries('updateOpts', {
-                    width: T.s.viewportWidth, 
+                $(hAJS+'VPC')[streamBoundaries]('updateOpts', {
+                    width: T.s[viewportWidth], 
                     height: T.s.viewportHeight,
-                    thumbWidth: vp.width ? vp.width : T.s.viewportWidth
-                }).streamBoundaries('reposition', {x: vp.left, y: vp.top});
-                $(hAJS+'VPS').streamBoundaries('updateOpts', {
+                    thumbWidth: vp.width ? vp.width : T.s[viewportWidth]
+                })[streamBoundaries]('reposition', {x: vp.left, y: vp.top});
+                $(hAJS+'VPS')[streamBoundaries]('updateOpts', {
                     onUpdate: function(e) {
-                        var diff = img.width - T.s.viewportWidth;
-                        $(hAJS + 'VPC').streamBoundaries('updateOpts', {thumbWidth: T.s.viewportWidth + (diff * e.px)});
+                        var diff = img.width - T.s[viewportWidth];
+                        $(hAJS + 'VPC')[streamBoundaries]('updateOpts', {thumbWidth: T.s[viewportWidth] + (diff * e.px)});
                     }
-                }).streamBoundaries('reposition', {
-                    x: (!vp.width ? 0 : ((vp.width - T.s.viewportWidth) / (img.width - T.s.viewportWidth) * 100)) + '%'
+                })[streamBoundaries]('reposition', {
+                    x: (!vp.width ? 0 : ((vp.width - T.s[viewportWidth]) / (img.width - T.s[viewportWidth]) * 100)) + '%'
                 });
             }
             // Set focus to the first field to indicate that it is editable
@@ -546,9 +552,9 @@
                 // We have some custom fields set so save the information
                 for (var i = 0; i < fields[length];i++) {
                     var obj = fields[i];
-                    output.push({field: obj.name, value: $('[data-ajsfor="' + obj.name + '"]').val()});
+                    output.push({field: obj[name], value: $('[data-ajsfor="' + obj[name] + '"]').val()});
                     // Clear the field for later use
-                    $('[data-ajsfor="' + obj.name + '"]').val('');
+                    $('[data-ajsfor="' + obj[name] + '"]').val('');
                 }
                 upload.customFields = output;
             }
@@ -593,41 +599,49 @@
                 ajsfile[click]();
             });
             
-            ajs.onpaste = function (e) {
-                var items = (e.clipboardData || e.originalEvent.clipboardData).items,
-                blob = items[0].getAsFile();
-                if (blob && blob.type.match(T.s.accept) && T[currentlength] < T.s.maxFiles) {
-                    // Only continue if the mimetype is acceptable, and if we haven't ran out of uploads for this input
-                    T.toload = 1;
-                    T.loaded = 0;
-                    // Get the date string and replace spaces with underscores and remove special characters
-                    var datestring = (new Date()).toString()[replace](/\ /g,'_')[replace](/(\+|\:|\(|\))/g, '');
-                    T.process({
-                        // Create a name for this file and set the file extension by stripping off 'master_type/' from 
-                        //  'master_type/ext'
-                        name: 'AjaxStream-Paste-At-'+datestring+'.'+(blob.type)[replace](/.+\/(.*)/,'$1'),
-                        type: blob.type,
-                        size: blob.size
-                    },T[currentupload] + 1,false, null,items[0].getAsFile());
-                }
-            };
+            if ('onpaste' in ajs) {
+                // We support paste functionality
+                ajs.onpaste = function (e) {
+                    var items = (e.clipboardData || e.originalEvent.clipboardData).items,
+                    blob = items[0].getAsFile(),
+                    test = opts.accept ? '.*' : opts.accept;
+                    if (blob && blob.type.match(test) && T[currentlength] < T.s.maxFiles) {
+                        // Only continue if the mimetype is acceptable, and if we haven't ran out of uploads for this input
+                        T.toload = 1;
+                        T.loaded = 0;
+                        // Get the date string and replace spaces with underscores and remove special characters
+                        var datestring = (new Date()).toString()[replace](/\ /g,'_')[replace](/(\+|\:|\(|\))/g, '');
+                        T.process({
+                            // Create a name for this file and set the file extension by stripping off 'master_type/' from 
+                            //  'master_type/ext'
+                            name: 'AjaxStream-Paste-At-'+datestring+'.'+(blob.type)[replace](/.+\/(.*)/,'$1'),
+                            type: blob.type,
+                            size: blob.size
+                        },T[currentupload] + 1,false, null,items[0].getAsFile());
+                    }
+                };
+            }
             
-            if (browserCanDo('drag')) {
-                // Add drag and drop functionality
+            if ('draggable' in document.createElement('span')) {
+                // If we have drag and drop support, add the functionality
                 document.body.ondragover = function(e) {
                     if ($(e.target).closest('#AJS')[length]) {
+                        // If the file is above the drop zone, prepare to accept it
                         e.stopPropagation();
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'copy';
                         $(hAJS+'DropZone')[rclass](AJSHidden);
                     } else {
+                        // Else show that the place being hovered over is not the drop zone
                         $(hAJS+'DropZone')[addclass](AJSHidden);
                     }
                 };
                 document.body.ondrop = function(e) {
+                    // Prevent an accidental drop outside the drop zone
+                    e.stopPropagation();
+                    e.preventDefault();
                     if ($(e.target).closest('#AJS')[length]) {
-                        e.stopPropagation();
-                        e.preventDefault();
+                        // Only accept drops inside the drop zone
                         $(hAJS+'DropZone')[addclass](AJSHidden);
                         T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
                     }
@@ -700,18 +714,16 @@
             
             $(hAJS+'Close')[unbind](click)[click](function () {
                 // Close the upload screen
+                $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS).hide();
             });
             
             $('[id^=AJSUploadBtn_]')[unbind](click)[click](function () {
                 // Determine what stream we want
-                var asid = $(this).prop('id')[replace](AJS+'UploadBtn_', '');
+                var asid = $(this)[prop]('id')[replace](AJS+'UploadBtn_', '');
                 // Set it as the current object
                 T = ZZ.streams[asid];
 //                T.initBinding();
-                // Get the upload data for this input
-                var val = $(hAJS+'_' + T.id).val();
-                T[uploads] = val[length] ? json_decode(val, !0) : [];
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
                 if (!T[uploads][length]) {
@@ -731,31 +743,33 @@
             var parent = T[par]();
             T[addclass](AJSHidden);
             if (exists($(hAJS+'_' + T.id))) {
-                T.loadExisting();
+                var val = $(hAJS+'_' + T.id).val();
+                T[uploads] = val[length] ? json_decode(val, !0) : [];
+//                T.loadExisting();
             } else {
                 parent[append](cHE.getInput(AJS+'_' + T.id, null, null, 'hidden'));
             }
             if (T.s.showPreviewOnForm) {
                 
             } else {
-                parent[append](cHE.getSpan(tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
+                parent[append](cHE[getSpan](tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
             }
             if (!exists($(hAJS+''))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
+                body[append](cHE[getDiv](drawMainDialogue(T.s), AJS));
                 if (!fapi) {
                     drawLegacy();
                 }
-                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport, T.s.viewportWidth, T.s.viewportHeight));
+                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport, T.s[viewportWidth], T.s.viewportHeight));
                 if (T.s.useViewport) {
                     // Apply the streamBoundaries plugin on the viewport window so that the user can play with the position of the
                     //  image
                     var viewport = $(hAJS+'VPC');
-                    viewport.streamBoundaries({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', isViewport: !0, orientation: '2d'});
+                    viewport[streamBoundaries]({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', isViewport: !0, orientation: '2d'});
                     // Apply the streamBoundaries plugin on the viewport scroller
-                    $(hAJS + 'VPS').streamBoundaries({
+                    $(hAJS + 'VPS')[streamBoundaries]({
                         onFinish: function() {
-                            $(hAJS + 'VPC').streamBoundaries('reposition');
+                            $(hAJS + 'VPC')[streamBoundaries]('reposition');
                         }
                     });
                 }
@@ -781,10 +795,10 @@
                 target: AJS+'IFrame'
             };
             $('body').append(
-                    cHE.getHtml('form', 
+                    cHE[getHtml]('form', 
                         cHE.getInput(AJS+'Legacy', null, null, 'hidden') + 
                         cHE.getInput(AJS+'FileLegacy', null, null, 'file'), AJS+'LegacyForm', AJSHidden, formsettings) +
-                    cHE.getHtml('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
+                    cHE[getHtml]('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
             );
         }
     }
@@ -797,7 +811,7 @@
     function drawMainDialogue() {
         var top = drawImagePreview() +
         drawUploader();
-        return cHE.getDiv(top, AJS+'Main');
+        return cHE[getDiv](top, AJS+'Main');
     }
 
     /**
@@ -808,12 +822,12 @@
     function drawImagePreview() {
 //            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
 //            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
-//        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE.getDiv(
-        var outtext = drawActionBar() + cHE.getDiv(
-            cHE.getSpan(null, AJS+'L', AJS+'LR asicons-arrow-left') + 
-            cHE.getSpan(null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
+//        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE[getDiv](
+        var outtext = drawActionBar() + cHE[getDiv](
+            cHE[getSpan](null, AJS+'L', AJS+'LR asicons-arrow-left') + 
+            cHE[getSpan](null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
         );
-        return cHE.getDiv(outtext, AJS+'ImagePreview', AJSHidden);
+        return cHE[getDiv](outtext, AJS+'ImagePreview', AJSHidden);
     }
 
     /**
@@ -821,14 +835,14 @@
      * @returns {html}
      */
     function drawActionBar() {
-        return cHE.getDiv(
-            cHE.getDiv(null, AJS+'ActionsOverlay') +    
-            cHE.getDiv(
-                cHE.getSpan(null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
-                cHE.getSpan(null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
-                cHE.getSpan(null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
-                cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
-                cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
+        return cHE[getDiv](
+            cHE[getDiv](null, AJS+'ActionsOverlay') +    
+            cHE[getDiv](
+                cHE[getSpan](null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
+                cHE[getSpan](null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
+                cHE[getSpan](null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
+                cHE[getSpan](null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
+                cHE[getSpan](null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
         AJS+'PreviewActions');
     }
     
@@ -841,12 +855,12 @@
         var inner = '', 
         attrs = {style: 'width:100%;'};
         if (hasvp) {
-            var vp = cHE.getDiv(cHE.getHtml('img', null, AJS+'VPImg'), AJS+'VPC') + cHE.getDiv(cHE.getDiv(null), AJS+'VPS');
-            inner += cHE.getDiv(vp, AJS+'VP');
+            var vp = cHE[getDiv](cHE[getHtml]('img', null, AJS+'VPImg'), AJS+'VPC') + cHE[getDiv](cHE[getDiv](null), AJS+'VPS');
+            inner += cHE[getDiv](vp, AJS+'VP');
             attrs['style'] = 'width:30%;';
         }
-        inner += cHE.getDiv(cHE.getSpan() + cHE.getDiv(renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
-        return cHE.getDiv(inner + cHE.getSpan(tx('Save'), AJS+'ISave'), AJS+'More', AJSHidden);
+        inner += cHE[getDiv](cHE[getSpan]() + cHE[getDiv](renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
+        return cHE[getDiv](inner + cHE[getSpan](tx('Save'), AJS+'ISave'), AJS+'More', AJSHidden);
     }
     
     /**
@@ -866,11 +880,11 @@
                 default:
                     type = 'text';
             }
-            outtext += cHE.getDiv(
-                    cHE.getDiv(cHE.getSpan(obj.name), null, AJS+'CFName') + 
-                    cHE.getDiv(cHE.getInput(null, obj.value, null, type, {
-                        placeholder: obj.name,
-                        'data-ajsfor': obj.name
+            outtext += cHE[getDiv](
+                    cHE[getDiv](cHE[getSpan](obj[name]), null, AJS+'CFName') + 
+                    cHE[getDiv](cHE.getInput(null, obj.value, null, type, {
+                        placeholder: obj[name],
+                        'data-ajsfor': obj[name]
                     }), null, AJS+'CFField'));
         }
         return outtext;
@@ -883,12 +897,12 @@
      */
     function drawUploader() {
         var choosefile = 
-                cHE.getSpan(tx('Choose file'), AJS+'ChooseText', AJS+'Btn') + 
-                cHE.getHtml('img', null, AJS+'Loading', AJSHidden, {src: 'files/loader.gif', title: tx('Files are loading')});
-        var outtext = cHE.getDiv(
+                cHE[getSpan](tx('Choose file'), AJS+'ChooseText', AJS+'Btn') + 
+                cHE[getHtml]('img', null, AJS+'Loading', AJSHidden, {src: 'files/loader.gif', title: tx('Files are loading')});
+        var outtext = cHE[getDiv](
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
-                cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-        return cHE.getDiv(outtext, AJS+'UploadSection') + cHE.getDiv(cHE.getHtml('a', tx('DROP')), AJS+'DropZone', AJSHidden);
+                cHE[getDiv](choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
+        return cHE[getDiv](outtext, AJS+'UploadSection') + cHE[getDiv](cHE[getHtml]('a', tx('DROP')), AJS+'DropZone', AJSHidden);
     }
     
     /**
@@ -908,7 +922,7 @@
      * @param {array} arr The array we will take from
      * @returns {unknown} The last element in your array
      */
-    function end (arr) {
+    function end(arr) {
         return arr.slice(-1)[0];
     };
     
@@ -947,73 +961,6 @@
     function is_object (variable) {
         return Object.prototype.toString.call(variable) === '[object Object]';
     }
-    
-    /**
-     * Determine whether a variable is a boolean or not
-     * @param {mixed} v Any variable
-     * @returns {Boolean} True if the variable is a boolean
-     */
-    function is_boolean(v) {
-        return typeof v === 'boolean';
-    }
-    /**
-     * @brief AjaxStream exception handler
-     * @param {string} exceptiontype The name of the exception to replace xxx in the string "Uncaught AjaxStream::xxx - message"
-     * @param {string} message The exception message
-     * @returns {sAjaxStream::Exception}
-     */
-    function exception(exceptiontype, message) {
-        return {
-            name: 'AjaxStream::' + exceptiontype,
-            level: "Cannot continue",
-            message: message,
-            htmlMessage: message,
-            toString: function() {
-                return ['Error: AjaxStream::', exceptiontype, ' - ', message].join('');
-            }
-        };
-    }
-    
-    /**
-     * @brief Determine whether a variable is empty, i.e. if it has a value, or if it is an empty array/object
-     * @param {Mixed} v Any variable to check
-     * @returns {Boolean} True if the variable is 'empty'
-     * @notes Function emulates the same behaviour as PHP's empty function
-     */
-    function empty (v) {
-        if (typeof v === undefined || !v || (is_array(v) && v[length] === 0) || (is_object(v) && objsize(v) === 0)) {
-            return !0;
-        }
-        return !1;
-    }
-    
-    /**
-     * @brief Determine whether the current browser is capable of doing certain things
-     * @param {String} test The feature to look for, e.g. 'canvas', or 'FileReader'
-     * @returns {Boolean} True if the current browser is capable of doing what was tested for
-     */
-    function browserCanDo (test) {
-        test = test.toLowerCase();
-        switch (test) {
-            case 'canvas':
-                // Test to see whether we have canvas support (from http://goo.gl/Fh8cCK)
-                var canvas = document.createElement('canvas');
-                return !!(canvas.getContext && canvas.getContext('2d'));
-            case 'fileapi':
-                return Boolean(win.Blob || win.File || win.FileList || win.FileReader);
-            case 'drag':
-                return ('draggable' in document.createElement('span'));
-            case 'formdata':
-                return (typeof FormData === 'function');
-            case 'xhrprogress':
-                var xhr = new XMLHttpRequest();
-                return !! (xhr && ('upload' in xhr) && ('onprogress' in xhr.upload));
-            case 'multiupload':
-                return ('multiple' in document.createElement('input'));
-            default:
-                throw exception('AjaxStream Error', ['This function cannot be used to test the feature "', test, '"'].join(''));
-        }
-    };
 
     /**
      * @brief Determine whether an element exists or not
@@ -1058,47 +1005,15 @@
      */
     function json_encode(object) {
         var obj = object;
-        if (is_array(obj)) {
+        if (Object.prototype.toString.call(obj) === '[object Array]') {
             obj = {};
             for (var i = 0, len = object[length]; i < len; i++) {
-                if (!empty(object[i])) {
+                if (object[i]) {
                     obj[i] = object[i];
                 }
             }
         }
         return JSON.stringify(obj);
-    }
-
-    /**
-     * @brief Determine whether a variable is an array
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable is an array
-     */
-    function is_array(variable) {
-        return Object.prototype.toString.call(variable) === '[object Array]';
-    }
-    
-    /**
-     * Determine the amount of items in an object
-     * @param {object} obj The object to test
-     * @returns {int} The amount of items in the object
-     */
-    function objsize (obj) {
-       var size = 0;
-        for (var okey in obj) {
-            if (obj.hasOwnProperty(okey))
-                size++;
-        }
-        return Number(size); 
-    }
-    
-    /**
-     * Get the id of a jQuery object
-     * @param {object(jQuery)} jqelem
-     * @returns {string} The id of the element
-     */
-    function id(jqelem) {
-        return jqelem[prop]('id');
     }
     
     /**
@@ -1149,7 +1064,7 @@
                 moreattrs.rel = 'nofollow';
             }
             moreattrs.href = href;
-            return self.getHtml('a', body, id, cssclass, moreattrs);
+            return self[getHtml]('a', body, id, cssclass, moreattrs);
         };
 
         /**
@@ -1192,12 +1107,12 @@
             if (value !== null && value !== '') {
                 moreattrs.value = value;
             }
-            if (id && !moreattrs.name) {
+            if (id && !moreattrs[name]) {
                 // Do not overwrite the name attribute if it has been specified manually
-                moreattrs.name = id;
+                moreattrs[name] = id;
             }
             moreattrs.type = type ? type : 'text';
-            return self.getHtml('input', null, id, cssclass, moreattrs);
+            return self[getHtml]('input', null, id, cssclass, moreattrs);
         };
 
         /**
@@ -1209,7 +1124,7 @@
          * @returns {html}
          */
         this.getSpan = function(body, id, cssclass, moreattrs) {
-            return self.getHtml('span', body, id, cssclass, moreattrs);
+            return self[getHtml]('span', body, id, cssclass, moreattrs);
         };
 
         /**
@@ -1222,7 +1137,7 @@
          * @returns {html}
          */
         this.getDiv = function(body, id, cssclass, moreattrs) {
-            return self.getHtml('div', body, id, cssclass, moreattrs);
+            return self[getHtml]('div', body, id, cssclass, moreattrs);
         };
 
         /**
@@ -1236,7 +1151,7 @@
                 for (var x in attrs) {
                     if (attrs.hasOwnProperty(x)) {
                         var val = attrs[x];
-                        if (is_boolean(val)) {
+                        if (typeof val === 'boolean') {
                             // Convert booleans to their integer representations
                             val = val ? 1 : 0;
                         }
