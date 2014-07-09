@@ -259,7 +259,7 @@
                         filedata.height = filedata.resizedHeight = image.height;
                         filedata.viewport = {
                             left: undefined,
-                            right: undefined,
+                            top: undefined,
                             width: undefined,
                             src: undefined
                         };
@@ -497,11 +497,7 @@
                 $(hAJS+'VPImg').attr({src: img.src, 'data-maxwidth': img.width});
                 $(hAJS+'VPC').streamBoundaries('updateOpts', {
                     width: T.s.viewportWidth, 
-                    height: T.s.viewportHeight,
-                    bounds: {
-                        bottom: 240,
-                        right: 240
-                    }
+                    height: T.s.viewportHeight
                 });
             }
             // Set focus to the first field to indicate that it is editable
@@ -528,7 +524,14 @@
             }
             if (T.s.useViewport) {
                 // Save the viewport data
+                var img = $(hAJS+'VPImg');
+                upload.viewport = {
+                    left: int(img.css('left')),
+                    top: int(img.css('top')),
+                    width: int(img.css('width'))
+                };
             }
+            console.log(upload);
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'ImagePreview')[rclass](AJSHidden);
         };
@@ -717,20 +720,20 @@
                     // Apply the streamBoundaries plugin on the viewport window so that the user can play with the position of the
                     //  image
                     var viewport = $(hAJS+'VPC');
-                    viewport.streamBoundaries({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', thumbIsLarger: !0, orientation: '2d'});
+                    viewport.streamBoundaries({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', isViewport: !0, orientation: '2d'});
                     // Apply the streamBoundaries plugin on the viewport scroller
-                    $(hAJS+'VPS').streamBoundaries({onUpdate: function (e) {
+                    $(hAJS + 'VPS').streamBoundaries({
+                        onUpdate: function(e) {
                             var minwidth = viewport.width(),
-                            img = $(hAJS+'VPImg'),
+                            img = $(hAJS + 'VPImg'),
                             maxwidth = img.data('maxwidth'),
                             diff = maxwidth - minwidth;
-                            $(hAJS+'VPC').streamBoundaries('updateOpts', {
-                                thumbWidth: minwidth + (diff * e.px),
-                                bounds: {
-                                    top:0
-                                }
-                            });
-                    }});
+                            $(hAJS + 'VPC').streamBoundaries('updateOpts', {thumbWidth: minwidth + (diff * e.px)});
+                        },
+                        onFinish: function() {
+                            $(hAJS + 'VPC').streamBoundaries('reposition');
+                        }
+                    });
                 }
             }
             T.initBinding();
@@ -1064,14 +1067,14 @@
         }
         return Number(size); 
     }
-
+    
     /**
-     * Determine whether a variable is a function
-     * @param {mixed} variable The variable to test
-     * @returns {boolean} True if the variable refers to a function
+     * Get an integer from a string
+     * @param {string} val The string from which we will retrieve the number
+     * @returns {integer} An integer from the string
      */
-    function is_function (variable) {
-        return typeof variable === 'function';
+    function int (val) {
+        return Number(val.replace(/\D+/g,''));
     }
     
     /**
