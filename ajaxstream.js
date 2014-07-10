@@ -11,9 +11,7 @@
     getDiv = 'getDiv',
     getSpan = 'getSpan',
     getHtml = 'getHtml',
-    streamBoundaries = 'streamBoundaries',
     name = 'name',
-    viewportWidth = 'viewportWidth',
     ef = function () {},
     defaults = {
         accept: ['*'],
@@ -55,10 +53,7 @@
         uploadScript: "upload.php",
         uploadTo: "uploads",
         uploadWithForm: !1,
-        useViewport: !1,
-        verbose: !1,
-        viewportHeight: 240,
-        viewportWidth: 240
+        verbose: !1
     };
     
     $.fn.ajaxStream = function (opts){
@@ -264,12 +259,6 @@
                         var image = this;
                         filedata.width = filedata.resizedWidth = image.width;
                         filedata.height = filedata.resizedHeight = image.height;
-                        filedata.viewport = {
-                            left: undefined,
-                            top: undefined,
-                            width: undefined,
-                            src: undefined
-                        };
                         filedata.base64 = null;
                         ZZ.images[AJS+'IMG_' + T.id + index] = this;
                         T.afterFileRead(filedata, changing, target);
@@ -481,26 +470,6 @@
         };
         
         /**
-         * Get the base64 string of the viewport canvas element
-         * @param {object(plain)} obj The object that has the left, top and width properties of the viewport
-         * @returns {string(base64)|boolean(false)} The base64 of the viewport image, or false if the browser doesn't support 
-         *  the canvas element
-         */
-        T.getViewport64 = function (obj) {
-            if (canv) {
-                // The browser supports the canvas api
-                var canvas = document.createElement('canvas'),
-                img = elem(AJS+'VPImg'),
-                ctx = canvas.getContext('2d');
-                canvas.width = T.s[viewportWidth];
-                canvas.height = T.s.viewportHeight;
-                ctx.drawImage(img, obj.left, obj.top, obj.width, img.height);
-                return canvas.toDataURL('image/jpeg', T.s.quality);
-            }
-            return false;
-        };
-        
-        /**
          * Display the information for the current file
          */
         T.showInfo = function (){
@@ -510,38 +479,18 @@
             $(hAJS+'More')[rclass](AJSHidden);
             // Set the title and also make underscores line-breakable
             $(hAJS+'Info > span').html(upload[name][replace](/([\_|\.])/g,'&shy;$1&shy;'));
-            $(hAJS+'Info').css({width: T.s.useViewport ? '30%' : '100%'});
             if (fields[length]) {
                 for (var i = 0; i < fields[length]; i++) {
                     var obj = fields[i];
                     $('[data-ajsfor="' + obj.field + '"]').val(obj.value);
                 }
             }
-            if (T.s.useViewport) {
-                // Do the viewport stuff
-                var img = ZZ.images['AJSIMG_' + T.id + T[currentupload]],
-                vp = upload.viewport;
-                $(hAJS+'VPImg').attr({src: img.src});
-                $(hAJS+'VPC')[streamBoundaries]('updateOpts', {
-                    width: T.s[viewportWidth], 
-                    height: T.s.viewportHeight,
-                    thumbWidth: vp.width ? vp.width : T.s[viewportWidth]
-                })[streamBoundaries]('reposition', {x: vp.left, y: vp.top});
-                $(hAJS+'VPS')[streamBoundaries]('updateOpts', {
-                    onUpdate: function(e) {
-                        var diff = img.width - T.s[viewportWidth];
-                        $(hAJS + 'VPC')[streamBoundaries]('updateOpts', {thumbWidth: T.s[viewportWidth] + (diff * e.px)});
-                    }
-                })[streamBoundaries]('reposition', {
-                    x: (!vp.width ? 0 : ((vp.width - T.s[viewportWidth]) / (img.width - T.s[viewportWidth]) * 100)) + '%'
-                });
-            }
             // Set focus to the first field to indicate that it is editable
             $(dAJS+'CFField:first > input').focus();
         };
         
         /**
-         * Save the custom fields information and the viewport data
+         * Save the custom fields information
          */
         T.saveInfo = function () {
             // Save the customFields information
@@ -557,17 +506,6 @@
                     $('[data-ajsfor="' + obj[name] + '"]').val('');
                 }
                 upload.customFields = output;
-            }
-            if (T.s.useViewport) {
-                // Save the viewport data
-                var img = $(hAJS+'VPImg'),
-                vpdata = {
-                    left: parseFloat(img.css('left')),
-                    top: parseFloat(img.css('top')),
-                    width: parseFloat(img.css('width'))
-                };
-                vpdata['src'] = T.getViewport64(vpdata);
-                upload.viewport = vpdata;
             }
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'ImagePreview')[rclass](AJSHidden);
@@ -760,19 +698,7 @@
                 if (!fapi) {
                     drawLegacy();
                 }
-                $(hAJS+'ImagePreview').after(drawInfoBay(T.s.useViewport, T.s[viewportWidth], T.s.viewportHeight));
-                if (T.s.useViewport) {
-                    // Apply the streamBoundaries plugin on the viewport window so that the user can play with the position of the
-                    //  image
-                    var viewport = $(hAJS+'VPC');
-                    viewport[streamBoundaries]({thumbWidth: 'auto', bg: '#000', thumbHeight: 'auto', isViewport: !0, orientation: '2d'});
-                    // Apply the streamBoundaries plugin on the viewport scroller
-                    $(hAJS + 'VPS')[streamBoundaries]({
-                        onFinish: function() {
-                            $(hAJS + 'VPC')[streamBoundaries]('reposition');
-                        }
-                    });
-                }
+                $(hAJS+'ImagePreview').after(drawInfoBay());
             }
             T.initBinding();
             T.event('init', T, {original: T[0]});
@@ -847,18 +773,12 @@
     }
     
     /**
-     * Draw the information section (Custom fields and the viewport)
-     * @param {boolean} hasvp True if current element has a viewport
+     * Draw the information section (Custom fields)
      * @returns {html}
      */
-    function drawInfoBay (hasvp) {
+    function drawInfoBay () {
         var inner = '', 
         attrs = {style: 'width:100%;'};
-        if (hasvp) {
-            var vp = cHE[getDiv](cHE[getHtml]('img', null, AJS+'VPImg'), AJS+'VPC') + cHE[getDiv](cHE[getDiv](null), AJS+'VPS');
-            inner += cHE[getDiv](vp, AJS+'VP');
-            attrs['style'] = 'width:30%;';
-        }
         inner += cHE[getDiv](cHE[getSpan]() + cHE[getDiv](renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
         return cHE[getDiv](inner + cHE[getSpan](tx('Save'), AJS+'ISave'), AJS+'More', AJSHidden);
     }
