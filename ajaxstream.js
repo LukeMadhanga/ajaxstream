@@ -189,8 +189,6 @@
             T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T});
             if (fapi) {
                 // We support the file api
-                $(hAJS+'ChooseText')[addclass](AJSHidden);
-                $(hAJS+'Loading')[rclass](AJSHidden);
                 if (T[changing] === !1) {
                     // This is a new file
                     var len = filelist[length];
@@ -215,60 +213,53 @@
         
         /**
          * Process the uploaded file
-         * @param {object(File|plain)} file An item from a FileList object, or a plain object from a paste event
+         * @param {object(File)} file An item from a FileList object
          * @param {int} i The index of this file in the uploads
          * @param {boolean} changing True if we are changing an existing file
          * @param {object(DOMElement)} target The original file input
-         * @param {null|object(Blob)} pasteblob A blob object from a paste event
          */
-        T.process = function (file, i, changing, target, pasteblob) {
-            if (pasteblob) {
-                fileready(null, pasteblob);
-            } else {
+        T.process = function (file, i, changing, target) {
+            $(hAJS+'Loading')[rclass](AJSHidden);
+            if (is_a('blob', file) || is_a('file', file)) {
                 var fr = new FileReader();
-                fr.onload = fileready;
-                fr.readAsArrayBuffer(file);
-            }
-            /**
-             * 
-             * @note Function had to be split up because we may already have a blob object (i.e. a paste event occurred)
-             * @param {object(Event)} e A DOM event for a file reader when it has loaded
-             * @param {object(Blob)} blobready A blob object if we already have one from a paste event
-             */
-            function fileready(e,blobready) {
-                var blob = blobready || new Blob([e.target.result], {type: file.type}),
-                dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
-                index = changing ? i : T[currentlength],
-                filedata =  {
-                    customFields: [],
-                    index: index,
-                    islegacy: !1,
-                    mimetype: file.type,
-                    name: file[name],
-                    newupload: !0,
-                    size: file.size,
-                    src: dataURL
-                };
-                if (!changing) {
-                    T[currentlength]++;
-                }
-                if (file.type.match('image/*')) {
-                    // If this is an image, then there is some extra information that we can add
-                    var img = new Image();
-                    img.onload = function () {
-                        var image = this;
-                        filedata.width = filedata.resizedWidth = image.width;
-                        filedata.height = filedata.resizedHeight = image.height;
-                        filedata.base64 = null;
-                        ZZ.images[AJS+'IMG_' + T.id + index] = this;
-                        T.afterFileRead(filedata, changing, target);
+                fr.onload = function(e) {
+                    var blob = new Blob([e.target.result], {type: file.type}),
+                    dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
+                    index = changing ? i : T[currentlength],
+                    filedata = {
+                        customFields: [],
+                        index: index,
+                        islegacy: !1,
+                        mimetype: file.type,
+                        name: file[name],
+                        newupload: !0,
+                        size: file.size,
+                        src: dataURL
                     };
-                    img.src = dataURL;
-                } else {
-                    // Load normally
-                    T.afterFileRead(filedata, changing, target);
-                }
-            };
+                    if (!changing) {
+                        T[currentlength]++;
+                    }
+                    if (file.type.match('image/*')) {
+                        // If this is an image, then there is some extra information that we can add
+                        var img = new Image();
+                        img.onload = function() {
+                            var image = this;
+                            filedata.width = filedata.resizedWidth = image.width;
+                            filedata.height = filedata.resizedHeight = image.height;
+                            filedata.base64 = null;
+                            ZZ.images[AJS + 'IMG_' + T.id + index] = this;
+                            T.afterFileRead(filedata, changing, target);
+                        };
+                        img.src = dataURL;
+                    } else {
+                        // Load normally
+                        T.afterFileRead(filedata, changing, target);
+                    }
+                };
+                fr.readAsArrayBuffer(file);
+            } else {
+                console.warn(tx('The selection is not a file'));
+            }
         };
         
         /**
@@ -298,6 +289,7 @@
             T.loaded++;
             T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded});
             if (T.loaded === T.toload) {
+                $(hAJS+'Loading')[addclass](AJSHidden);
                 $(hAJS+'UploadSection')[addclass](AJSHidden);
                 $(hAJS+'ImagePreview')[rclass](AJSHidden);
                 T.toggleLR();
@@ -336,7 +328,7 @@
                     cur = T.getCurr(gotoend);
                 }
                 // Determine whether the add button should be disabled
-                $(hAJS+'Add')[T[currentlength] + 1 > T.s.maxFiles ? addclass : rclass](AJS+'Disabled');
+                $(hAJS+'Add')[T[currentlength] + 1 > T.s.maxFiles ? addclass : rclass](AJSHidden);
                 var src = cur.mimetype.match('image/*') ? cur.src : T.getIconPath(cur.mimetype);
                 T.toggleLR();
                 T.drawImage(cur, src);
@@ -367,7 +359,7 @@
                 canvas[attr]({src: src});
             }
             // Hide the others but make this one visible
-            $((docanvas ? 'canvas':'img') + '[id^="AJSIMG_"]')[addclass](AJSHidden);
+            $('[id^="AJSIMG_"]')[addclass](AJSHidden);
             canvas[rclass](AJSHidden);
         };
         
@@ -539,23 +531,17 @@
             
             if ('onpaste' in ajs) {
                 // We support paste functionality
-                ajs.onpaste = function (e) {
-                    var items = (e.clipboardData || e.originalEvent.clipboardData).items,
-                    blob = items[0].getAsFile(),
-                    test = opts.accept ? '.*' : opts.accept;
-                    if (blob && blob.type.match(test) && T[currentlength] < T.s.maxFiles) {
-                        // Only continue if the mimetype is acceptable, and if we haven't ran out of uploads for this input
-                        T.toload = 1;
-                        T.loaded = 0;
-                        // Get the date string and replace spaces with underscores and remove special characters
-                        var datestring = (new Date()).toString()[replace](/\ /g,'_')[replace](/(\+|\:|\(|\))/g, '');
-                        T.process({
-                            // Create a name for this file and set the file extension by stripping off 'master_type/' from 
-                            //  'master_type/ext'
-                            name: 'AjaxStream-Paste-At-'+datestring+'.'+(blob.type)[replace](/.+\/(.*)/,'$1'),
-                            type: blob.type,
-                            size: blob.size
-                        },T[currentupload] + 1,false, null,items[0].getAsFile());
+                var ael = !!typeof addEventListener;
+                ajs[ael ? 'removeEventListener' :'detachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
+                ajs[ael ? 'addEventListener' : 'attachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
+                        
+                function ajspaste (e) {
+                    var clipboarditems = e.clipboardData.items,
+                    len = clipboarditems[length];
+                    T.toload = len;
+                    T.loaded = 0;
+                    for (var i = 0; i < len; i++) {
+                        T.process(clipboarditems[i].getAsFile(), i);
                     }
                 };
             }
@@ -650,7 +636,7 @@
                 }
             });
             
-            $(hAJS+'Close')[unbind](click)[click](function () {
+            $('#AJSClose,#AJSCloseText')[unbind](click)[click](function () {
                 // Close the upload screen
                 $(hAJS+'_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS).hide();
@@ -664,11 +650,6 @@
 //                T.initBinding();
                 T[uploads][length] ? T.displayUpload() : T.resetToUpload();
                 $(hAJS+'').show();
-                if (!T[uploads][length]) {
-                    // If there is nothing in the uploads, open the file select immediately
-                    ajsfile[click]();
-                    T.addingmore = !0;
-                }
             });
             
         };
@@ -737,7 +718,10 @@
     function drawMainDialogue() {
         var top = drawImagePreview() +
         drawUploader();
-        return cHE[getDiv](top, AJS+'Main');
+        return cHE[getDiv](top + cHE[getHtml]('img', null, AJS+'Loading', AJSHidden, {
+            src: 'files/loader.gif', 
+            title: tx('Files are loading')
+        }), AJS+'Main');
     }
 
     /**
@@ -746,9 +730,6 @@
      * @returns {html}
      */
     function drawImagePreview() {
-//            var outtext = cHE.getHtml(browserCanDo('canvas') ? 'canvas' : 'img', null, 'ajaxStreamUploadPreview', null);
-//            var outtext = drawActionBar() + cHE.getHtml('img', null, null, 'ajaxStreamUploadPreview');
-//        var outtext = drawActionBar() + cHE.getHtml('img', null, AJS+'UploadPreview') + cHE[getDiv](
         var outtext = drawActionBar() + cHE[getDiv](
             cHE[getSpan](null, AJS+'L', AJS+'LR asicons-arrow-left') + 
             cHE[getSpan](null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
@@ -817,8 +798,10 @@
      */
     function drawUploader() {
         var choosefile = 
-                cHE[getSpan](tx('Choose file'), AJS+'ChooseText', AJS+'Btn') + 
-                cHE[getHtml]('img', null, AJS+'Loading', AJSHidden, {src: 'files/loader.gif', title: tx('Files are loading')});
+                cHE[getSpan](tx('Choose file'), AJS+'ChooseText', AJS+'BtnD') + 
+                cHE[getSpan](tx('Paste'), AJS+'PasteText', 'AJSBtnD AJSBtnDU') + 
+                cHE[getSpan](tx('Drop'), AJS+'DropText', 'AJSBtnD AJSBtnDU') + 
+                cHE[getSpan]('x', AJS+'CloseText', AJS+'BtnD');
         var outtext = cHE[getDiv](
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
                 cHE[getDiv](choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
@@ -879,7 +862,18 @@
      * @returns {boolean} True if the variable is an object
      */
     function is_object (variable) {
-        return Object.prototype.toString.call(variable) === '[object Object]';
+        return is_a('Object', variable);
+    }
+    
+    /**
+     * Determine whether parameter two is an object of type parameter one
+     * @param {string} type The expected type
+     * @param {mixed} variable The object to test
+     * @returns {boolean} True if parameter two is an object of type paremeter one
+     */
+    function is_a(type, variable) {
+        var otype = type.substr(0,1).toUpperCase() + type.substr(1).toLowerCase();
+        return Object.prototype.toString.call(variable) === '[object ' + otype + ']';
     }
 
     /**
@@ -925,7 +919,7 @@
      */
     function json_encode(object) {
         var obj = object;
-        if (Object.prototype.toString.call(obj) === '[object Array]') {
+        if (is_a('Array', obj)) {
             obj = {};
             for (var i = 0, len = object[length]; i < len; i++) {
                 if (object[i]) {

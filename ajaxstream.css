@@ -99,6 +99,15 @@
 .AJSDisabled:hover {background: initial !important;}
 .AJSBtn {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;cursor: pointer;}
 .AJSBtn:hover {background: #DDD;}
+.AJSBtnD {height: 40px;line-height: 40px;display: inline-block;box-sizing: border-box;padding: 0 5px;background: #363636;
+          border-radius: 3px;font-weight: bold;box-shadow: 0px -1px 0px #686868;margin: 0 10px;color: #A5A5A5;cursor: pointer;
+          position: relative;width:120px;}
+.AJSBtnD:hover {top: 1px;}
+.AJSBtnDU {box-shadow: none;cursor: default;background: #000;opacity: 0.5;}
+.AJSBtnDU:hover {top: 0;}
+#AJSCloseText {width: 40px;box-shadow: none;background: #850000;color: #FFF;opacity: 0.7;}
+#AJSCloseText:hover {top: 0;opacity: 1;}
+#AJSChooseFile {position: absolute;top: 50%;margin: -20px 0 0 0;text-align: center;width: 100%;}
 #AJSDropZone {background: url('files/dia.png');z-index: 30;position: absolute;width: 100%;height: 100%;top: 0;}
 #AJSDropZone > a {top: 50%;position: absolute;margin: -10px 0;font-size: 20px;}
 #AJSFile {}
@@ -106,33 +115,35 @@
       max-width: 960px; max-height: 540px;display:none;}
 #AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
 #AJSUploadSection {position: relative;width: 100%;height: 100%;}
-#AJSMain {width: 100%;height: 100%;position:relative;}
-#AJSLoading {color: #949494;padding: 12px;border-radius: 2px;background: #EEE;}
-
+#AJSMain {width: 100%;height: 100%;position:relative;background: url('files/bg.jpg') center center;}
+#AJSLoading {padding: 12px;border-radius: 2px;background: #000;position: absolute;opacity: 0.5;top: 50%;left: 50%;z-index: 250;
+             margin: -17.5px 0 0 -20px;}
 img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity: 1;
     -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;}
 
-#AJSImagePreview {text-align: center;overflow: hidden;background: url('files/bg.jpg') center center;height: 100%;
+#AJSImagePreview {text-align: center;overflow: hidden;height: 100%;
                          box-sizing: border-box;border: solid thin #F9F9F9;position: relative;}
 #AJSImagePreview:hover > #AJSPreviewActions {top: 0;}
 #AJSImagePreview:hover > #AJSLRContainer > #AJSR {right: 0;}
 #AJSImagePreview:hover > #AJSLRContainer > #AJSL {left: 0;}
-.AJSLR {color: #000;position: absolute;cursor: pointer;background: #FFF;opacity: 0.05;width:50px;height:50px;
-               -webkit-transition: opacity 0.4s;-moz-transition: opacity 0.4s;transition: opacity 0.4s;box-shadow: 0px 0px 1px #000;}
-.AJSLR:hover {opacity: 0.15;}
+.AJSLR {color: #000;position: absolute;cursor: pointer;background: #FFF;opacity: 0.15;width:50px;height:50px;
+               box-shadow: 0px 0px 1px #000;}
+.AJSLR:hover {opacity: 0.3;}
 #AJSLRContainer {position: absolute;top: 50%;font-size: 50px;margin: -25px 0 0;width: 100%;}
-#AJSR {right: -50px;-webkit-transition: right 0.4s;-moz-transition: right 0.4s;transition: right 0.4s;}
-#AJSL {left: -50px;-webkit-transition: left 0.4s;-moz-transition: left 0.4s;transition: left 0.4s;}
+#AJSR {right: -50px;-webkit-transition: right 0.4s, opacity 0.4s;-moz-transition: right 0.4s, opacity 0.4s;
+       transition: right 0.4s, opacity 0.4s;}
+#AJSL {left: -50px;-webkit-transition: left 0.4s, opacity 0.4s;-moz-transition: left 0.4s, opacity 0.4s;
+       transition: left 0.4s, opacity 0.4s;}
 #AJSClose {background: #A00000;opacity: 0.5;}
 #AJSClose:hover {opacity: 0.7;background: #A00000 !important;}
 #AJSPreviewActions {position: absolute;height: 40px;width: 100%;
     text-align: right;top: -40px;-webkit-transition: top 0.4s;-moz-transition: top 0.4s;transition: top 0.4s;}
-#AJSPreviewActions > div > span {box-sizing: border-box;line-height: 40px;padding: 0 5px;height: 40px;width: 40px;
+#AJSPreviewActions > div > span {box-sizing: border-box;line-height: 40px;padding: 0 5px;height: 40px;width: 40px;color: #FFF;
     display: inline-block;text-align: center;cursor: pointer;border-left: solid thin #6F6F6F;-webkit-transition: background 0.1s;
     -moz-transition: background 0.1s;transition: background 0.1s;}
-#AJSPreviewActions > div > span:hover {background: #707070;}
+#AJSPreviewActions > div > span:hover {background: #000;}
 #AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
-#AJSActionsOverlay {background: #FFF;opacity: 0.1;border-bottom: solid thin #333;}
+#AJSActionsOverlay {background: #000;opacity: 0.2;border-bottom: solid thin #333;}
 #AJSMore > div {position: absolute;height: 90%;box-sizing: border-box;}
 #AJSInfo {border-right: solid thin #F1F1F1;padding: 10px;overflow: auto;}
 #AJSMore {position: relative;height: 100%;}
