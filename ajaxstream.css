@@ -145,12 +145,16 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height: 100%;cursor: move;opacity:
 #AJSPreviewActions > div {position: absolute;width: 100%;height: 100%;}
 #AJSActionsOverlay {background: #000;opacity: 0.2;border-bottom: solid thin #333;}
 #AJSMore > div {position: absolute;height: 90%;box-sizing: border-box;}
-#AJSInfo {border-right: solid thin #F1F1F1;padding: 10px;overflow: auto;}
-#AJSMore {position: relative;height: 100%;}
+#AJSInfo {padding: 10px;width:100%;}
+#AJSMore {position: relative;height: 100%;width: 100%;}
 .AJSCFField > input {width: 100%;border: none;border-bottom: solid thin #DEDEDE;outline: none;padding: 10px 0 0;}
 #AJSCF > div {padding: 10px 0;}
-#AJSInfo > span {font-weight: bold;font-size: 17px;padding: 0 0 15px;display: block;}
-#AJSISave {position: absolute;width: 100%;height: 10%;top: 90%;border-top: solid thin #F1F1F1;text-align: center;
-           box-sizing: border-box;background: #F8F8F8;cursor: pointer;color: #555;font-weight: bold;text-transform: uppercase;
-           font-size: 13px;padding: 12px;}
-#AJSISave:hover {color: #000;}
+#AJSIBtns {width: 100%;height: 10% !important;top: 90%;text-align: right;}
+#AJSIBtns > span {text-align: center;height: 30px;line-height: 30px;opacity: 0.3;-webkit-transition:opacity 0.2s;
+    -moz-transition:opacity 0.2s;transition:opacity 0.2s;}
+#AJSIBtns > span:hover {opacity: 1;}
+#AJSResImg {max-height: 100%;}
+#AJSRITrack {position: absolute !important;top: 0;}
+#AJSRInner {position:absolute;}
+#AJSRIHolder {width: 100%;height: 100%;}
+#AJSRItrack > div {border: solid 2px #B3B37A;opacity: 0.5;}

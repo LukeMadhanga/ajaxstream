@@ -466,19 +466,24 @@
          */
         T.showInfo = function (){
             var upload = T[uploads][T[currentupload]],
-            fields = upload.customFields;
+            ri = $(hAJS+'ResImg');
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'More')[rclass](AJSHidden);
             // Set the title and also make underscores line-breakable
-            $(hAJS+'Info > span').html(upload[name][replace](/([\_|\.])/g,'&shy;$1&shy;'));
-            if (fields[length]) {
-                for (var i = 0; i < fields[length]; i++) {
-                    var obj = fields[i];
-                    $('[data-ajsfor="' + obj.field + '"]').val(obj.value);
-                }
-            }
-            // Set focus to the first field to indicate that it is editable
-            $(dAJS+'CFField:first > input').focus();
+//            $(hAJS+'Info > span').html(upload[name][replace](/([\_|\.])/g,'&shy;$1&shy;'));
+//            if (fields[length]) {
+//                for (var i = 0; i < fields[length]; i++) {
+//                    var obj = fields[i];
+//                    $('[data-ajsfor="' + obj.field + '"]').val(obj.value);
+//                }
+//            }
+//             // Set focus to the first field to indicate that it is editable
+//            $(dAJS+'CFField:first > input').focus();
+            
+            ri[0].src = upload.src;
+            var w = Math.floor(ri.width()),
+            h = Math.floor(ri.height());
+            $(hAJS+'RITrack').streamBoundaries('updateOpts', {width: w, height: h, thumbWidth: w*.8, thumbHeight: h*.8});
         };
         
         /**
@@ -541,7 +546,12 @@
                     T.toload = len;
                     T.loaded = 0;
                     for (var i = 0; i < len; i++) {
-                        T.process(clipboarditems[i].getAsFile(), i);
+                        var file = clipboarditems[i].getAsFile();
+                        if (file.size) {
+                            T.process(file, i);
+                        } else {
+                            console.warn(tx('There was an error processing the file you pasted'));
+                        }
                     }
                 };
             }
@@ -610,9 +620,14 @@
                 T.changePrev();
             });
             
-            $(hAJS+'Edit')[unbind](click)[click](T.showInfo);
+            elem(AJS+'Edit').onclick = T.showInfo;
             
-            $(hAJS+'ISave')[unbind](click)[click](T.saveInfo);
+            elem(AJS+'ICancel').onclick = function () {
+                $(hAJS+'Main > div')[addclass](AJSHidden);
+                $(hAJS+'ImagePreview')[rclass](AJSHidden);
+            };
+            
+            elem(AJS+'ISave').onclick = T.saveInfo;
             
             $(hAJS+'Remove')[unbind](click)[click](function () {
                 if (confirm(tx('Are you sure you want to delete this file?'))) {
@@ -671,15 +686,23 @@
             if (T.s.showPreviewOnForm) {
                 
             } else {
-                parent[append](cHE[getSpan](tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
+                parent[append](cHE.getSpan(tx('Upload'), AJS+'UploadBtn_' + T.id, AJS+'Btn', {'data-mandatory': !0}));
             }
-            if (!exists($(hAJS+''))) {
+            if (!exists($(hAJS))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body[append](cHE[getDiv](drawMainDialogue(T.s), AJS));
+                body[append](cHE.getDiv(drawMainDialogue(T.s), AJS));
                 if (!fapi) {
                     drawLegacy();
                 }
                 $(hAJS+'ImagePreview').after(drawInfoBay());
+                $(hAJS+'RITrack').streamBoundaries({
+                    width: '100%',
+                    height: '100%',
+                    orientation: '2d',
+                    resizable: !0,
+                    bg: 'none',
+                    thumbBg: 'none'
+                });
             }
             T.initBinding();
             T.event('init', T, {original: T[0]});
@@ -702,10 +725,10 @@
                 target: AJS+'IFrame'
             };
             $('body').append(
-                    cHE[getHtml]('form', 
+                    cHE.getHtml('form', 
                         cHE.getInput(AJS+'Legacy', null, null, 'hidden') + 
                         cHE.getInput(AJS+'FileLegacy', null, null, 'file'), AJS+'LegacyForm', AJSHidden, formsettings) +
-                    cHE[getHtml]('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
+                    cHE.getHtml('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
             );
         }
     }
@@ -718,7 +741,7 @@
     function drawMainDialogue() {
         var top = drawImagePreview() +
         drawUploader();
-        return cHE[getDiv](top + cHE[getHtml]('img', null, AJS+'Loading', AJSHidden, {
+        return cHE.getDiv(top + cHE.getHtml('img', null, AJS+'Loading', AJSHidden, {
             src: 'files/loader.gif', 
             title: tx('Files are loading')
         }), AJS+'Main');
@@ -730,11 +753,11 @@
      * @returns {html}
      */
     function drawImagePreview() {
-        var outtext = drawActionBar() + cHE[getDiv](
-            cHE[getSpan](null, AJS+'L', AJS+'LR asicons-arrow-left') + 
-            cHE[getSpan](null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
+        var outtext = drawActionBar() + cHE.getDiv(
+            cHE.getSpan(null, AJS+'L', AJS+'LR asicons-arrow-left') + 
+            cHE.getSpan(null, AJS+'R', AJS+'LR asicons-arrow-right'), AJS+'LRContainer'
         );
-        return cHE[getDiv](outtext, AJS+'ImagePreview', AJSHidden);
+        return cHE.getDiv(outtext, AJS+'ImagePreview', AJSHidden);
     }
 
     /**
@@ -742,14 +765,14 @@
      * @returns {html}
      */
     function drawActionBar() {
-        return cHE[getDiv](
-            cHE[getDiv](null, AJS+'ActionsOverlay') +    
-            cHE[getDiv](
-                cHE[getSpan](null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
-                cHE[getSpan](null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
-                cHE[getSpan](null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
-                cHE[getSpan](null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
-                cHE[getSpan](null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
+        return cHE.getDiv(
+            cHE.getDiv(null, AJS+'ActionsOverlay') +    
+            cHE.getDiv(
+                cHE.getSpan(null, AJS+'Add', 'asicons-plus', {title: tx('Add another file')}) +
+                cHE.getSpan(null, AJS+'Change', 'asicons-upload', {title: tx('Change file')}) +
+                cHE.getSpan(null, AJS+'Edit', 'asicons-pencil', {title: tx('Edit')}) +
+                cHE.getSpan(null, AJS+'Remove', 'asicons-trash', {title: tx('Remove file')}) +
+                cHE.getSpan(null, AJS+'Close', 'asicons-cross', {title: tx('Close window')})), 
         AJS+'PreviewActions');
     }
     
@@ -758,10 +781,14 @@
      * @returns {html}
      */
     function drawInfoBay () {
-        var inner = '', 
-        attrs = {style: 'width:100%;'};
-        inner += cHE[getDiv](cHE[getSpan]() + cHE[getDiv](renderCustomFields(), AJS+'CF'), AJS+'Info', null, attrs);
-        return cHE[getDiv](inner + cHE[getSpan](tx('Save'), AJS+'ISave'), AJS+'More', AJSHidden);
+        var inner = '';
+        inner += cHE.getDiv(
+                    cHE.getDiv(cHE.getDiv(cHE.getHtml('img', null, AJS+'ResImg') + cHE.getDiv(cHE.getDiv(), AJS+'RITrack'), 
+                        AJS+'RInner'), AJS+'RIHolder'), AJS+'Info');
+        return cHE.getDiv(inner + 
+                cHE.getDiv(
+                    cHE.getSpan(tx('Save'), AJS+'ISave', AJS+'BtnD')+ 
+                    cHE.getSpan(tx('Cancel'), AJS+'ICancel', AJS+'BtnD'), AJS+'IBtns'), AJS+'More', AJSHidden);
     }
     
     /**
@@ -781,9 +808,9 @@
                 default:
                     type = 'text';
             }
-            outtext += cHE[getDiv](
-                    cHE[getDiv](cHE[getSpan](obj[name]), null, AJS+'CFName') + 
-                    cHE[getDiv](cHE.getInput(null, obj.value, null, type, {
+            outtext += cHE.getDiv(
+                    cHE.getDiv(cHE.getSpan(obj[name]), null, AJS+'CFName') + 
+                    cHE.getDiv(cHE.getInput(null, obj.value, null, type, {
                         placeholder: obj[name],
                         'data-ajsfor': obj[name]
                     }), null, AJS+'CFField'));
@@ -798,14 +825,14 @@
      */
     function drawUploader() {
         var choosefile = 
-                cHE[getSpan](tx('Choose file'), AJS+'ChooseText', AJS+'BtnD') + 
-                cHE[getSpan](tx('Paste'), AJS+'PasteText', 'AJSBtnD AJSBtnDU') + 
-                cHE[getSpan](tx('Drop'), AJS+'DropText', 'AJSBtnD AJSBtnDU') + 
-                cHE[getSpan]('x', AJS+'CloseText', AJS+'BtnD');
-        var outtext = cHE[getDiv](
+                cHE.getSpan(tx('Choose file'), AJS+'ChooseText', AJS+'BtnD') + 
+                cHE.getSpan(tx('Paste'), AJS+'PasteText', 'AJSBtnD AJSBtnDU') + 
+                cHE.getSpan(tx('Drop'), AJS+'DropText', 'AJSBtnD AJSBtnDU') + 
+                cHE.getSpan('x', AJS+'CloseText', AJS+'BtnD');
+        var outtext = cHE.getDiv(
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
-                cHE[getDiv](choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-        return cHE[getDiv](outtext, AJS+'UploadSection') + cHE[getDiv](cHE[getHtml]('a', tx('DROP')), AJS+'DropZone', AJSHidden);
+                cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
+        return cHE.getDiv(outtext, AJS+'UploadSection') + cHE.getDiv(cHE.getHtml('a', tx('DROP')), AJS+'DropZone', AJSHidden);
     }
     
     /**
@@ -978,7 +1005,7 @@
                 moreattrs.rel = 'nofollow';
             }
             moreattrs.href = href;
-            return self[getHtml]('a', body, id, cssclass, moreattrs);
+            return self.getHtml('a', body, id, cssclass, moreattrs);
         };
 
         /**
@@ -1026,7 +1053,7 @@
                 moreattrs[name] = id;
             }
             moreattrs.type = type ? type : 'text';
-            return self[getHtml]('input', null, id, cssclass, moreattrs);
+            return self.getHtml('input', null, id, cssclass, moreattrs);
         };
 
         /**
@@ -1038,7 +1065,7 @@
          * @returns {html}
          */
         this.getSpan = function(body, id, cssclass, moreattrs) {
-            return self[getHtml]('span', body, id, cssclass, moreattrs);
+            return self.getHtml('span', body, id, cssclass, moreattrs);
         };
 
         /**
@@ -1051,7 +1078,7 @@
          * @returns {html}
          */
         this.getDiv = function(body, id, cssclass, moreattrs) {
-            return self[getHtml]('div', body, id, cssclass, moreattrs);
+            return self.getHtml('div', body, id, cssclass, moreattrs);
         };
 
         /**
