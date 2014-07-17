@@ -461,6 +461,28 @@
             T.displayUpload(cur);
         };
         
+        T.getCropped64 = function (canvas, cur, img, data) {
+            if (canv) {
+                // The browser supports the canvas api
+                var ctx = canvas.getContext('2d'),
+                ri = $(hAJS+'ResImg'),
+                ow = cur.resizedWidth,
+                oh = cur.resizedHeight,
+                w = data.x2 - data.x,
+                h = data.y2 - data.y,
+                scaleX = ow/ri.width(),
+                scaleY = oh/ri.height();
+                w *= scaleX;
+                h *= scaleY;
+                console.log(data, w, h);
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, -(data.x*scaleX), -(data.y*scaleY), ow, oh);
+                cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
+            }
+            return false;
+        };
+        
         /**
          * Display the information for the current file
          */
@@ -491,19 +513,22 @@
          */
         T.saveInfo = function () {
             // Save the customFields information
-            var upload = T[uploads][T[currentupload]],
-            fields = ZZ.customFields,
-            output = [];
-            if (fields[length]) {
-                // We have some custom fields set so save the information
-                for (var i = 0; i < fields[length];i++) {
-                    var obj = fields[i];
-                    output.push({field: obj[name], value: $('[data-ajsfor="' + obj[name] + '"]').val()});
-                    // Clear the field for later use
-                    $('[data-ajsfor="' + obj[name] + '"]').val('');
-                }
-                upload.customFields = output;
-            }
+            var upload = T[uploads][T[currentupload]];
+//            fields = ZZ.customFields,
+//            output = [];
+//            if (fields[length]) {
+//                // We have some custom fields set so save the information
+//                for (var i = 0; i < fields[length];i++) {
+//                    var obj = fields[i];
+//                    output.push({field: obj[name], value: $('[data-ajsfor="' + obj[name] + '"]').val()});
+//                    // Clear the field for later use
+//                    $('[data-ajsfor="' + obj[name] + '"]').val('');
+//                }
+//                upload.customFields = output;
+//            }
+            var data = $(hAJS+'RITrack').streamBoundaries('getPositionData'),
+            key = 'AJSIMG_' + T.id + T[currentupload];
+            T.getCropped64(elem(key), upload, ZZ.images[key], data);
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'ImagePreview')[rclass](AJSHidden);
         };
