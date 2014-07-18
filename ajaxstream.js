@@ -247,6 +247,7 @@
                             filedata.width = filedata.resizedWidth = image.width;
                             filedata.height = filedata.resizedHeight = image.height;
                             filedata.base64 = null;
+                            filedata.cropdata = {};
                             ZZ.images[AJS + 'IMG_' + T.id + index] = this;
                             T.afterFileRead(filedata, changing, target);
                         };
@@ -393,6 +394,35 @@
             cur.base64 = canvas.toDataURL("image/jpeg", T.s.quality);
         }
         
+        
+        
+        /**
+         * Get the base64 image from the cropped file
+         * @param {object(DOMElement)} canvas The destination canvas
+         * @param {object(plain)} cur The object that describes the current upload
+         * @param {object(DOMElement)} img The original image that was uploaded
+         * @param {object(plain)} data The object that describes the coordinates of the crop rectangle
+         */
+        T.getCropped64 = function (canvas, cur, img, data) {
+            if (canv) {
+                // The browser supports the canvas api
+                var ctx = canvas.getContext('2d'),
+                ri = $(hAJS+'ResImg'),
+                ow = cur.resizedWidth,
+                oh = cur.resizedHeight,
+                w = data.x2 - data.x,
+                h = data.y2 - data.y,
+                scaleX = ow/ri.width(),
+                scaleY = oh/ri.height();
+                w *= scaleX;
+                h *= scaleY;
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, -(data.x*scaleX), -(data.y*scaleY), ow, oh);
+                cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
+            }
+        };
+        
         /**
          * Get the icon image
          * @param {type} mime
@@ -461,51 +491,27 @@
             T.displayUpload(cur);
         };
         
-        T.getCropped64 = function (canvas, cur, img, data) {
-            if (canv) {
-                // The browser supports the canvas api
-                var ctx = canvas.getContext('2d'),
-                ri = $(hAJS+'ResImg'),
-                ow = cur.resizedWidth,
-                oh = cur.resizedHeight,
-                w = data.x2 - data.x,
-                h = data.y2 - data.y,
-                scaleX = ow/ri.width(),
-                scaleY = oh/ri.height();
-                w *= scaleX;
-                h *= scaleY;
-                console.log(data, w, h);
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(img, -(data.x*scaleX), -(data.y*scaleY), ow, oh);
-                cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
-            }
-            return false;
-        };
-        
         /**
          * Display the information for the current file
          */
         T.showInfo = function (){
             var upload = T[uploads][T[currentupload]],
+            cd = upload.cropdata,
             ri = $(hAJS+'ResImg');
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'More')[rclass](AJSHidden);
-            // Set the title and also make underscores line-breakable
-//            $(hAJS+'Info > span').html(upload[name][replace](/([\_|\.])/g,'&shy;$1&shy;'));
-//            if (fields[length]) {
-//                for (var i = 0; i < fields[length]; i++) {
-//                    var obj = fields[i];
-//                    $('[data-ajsfor="' + obj.field + '"]').val(obj.value);
-//                }
-//            }
-//             // Set focus to the first field to indicate that it is editable
-//            $(dAJS+'CFField:first > input').focus();
-            
+            // Reposition the thumb to fit
             ri[0].src = upload.src;
             var w = Math.floor(ri.width()),
-            h = Math.floor(ri.height());
-            $(hAJS+'RITrack').streamBoundaries('updateOpts', {width: w, height: h, thumbWidth: w*.8, thumbHeight: h*.8});
+            h = Math.floor(ri.height()),
+            tw = cd.x !== undefined ? cd.x2 - cd.x : w*.8,
+            th = cd.y !== undefined ? cd.y2 - cd.y : h*.8;
+            $(hAJS+'RITrack').streamBoundaries('updateOpts', {
+                width: w, 
+                height: h, 
+                thumbWidth: tw, 
+                thumbHeight: th
+            }).streamBoundaries('reposition', {x: cd.x || 0, y: cd.y || 0});
         };
         
         /**
@@ -514,21 +520,10 @@
         T.saveInfo = function () {
             // Save the customFields information
             var upload = T[uploads][T[currentupload]];
-//            fields = ZZ.customFields,
-//            output = [];
-//            if (fields[length]) {
-//                // We have some custom fields set so save the information
-//                for (var i = 0; i < fields[length];i++) {
-//                    var obj = fields[i];
-//                    output.push({field: obj[name], value: $('[data-ajsfor="' + obj[name] + '"]').val()});
-//                    // Clear the field for later use
-//                    $('[data-ajsfor="' + obj[name] + '"]').val('');
-//                }
-//                upload.customFields = output;
-//            }
             var data = $(hAJS+'RITrack').streamBoundaries('getPositionData'),
             key = 'AJSIMG_' + T.id + T[currentupload];
             T.getCropped64(elem(key), upload, ZZ.images[key], data);
+            upload.cropdata = {x: data.x, x2: data.x2, y: data.y, y2: data.y2};
             $(hAJS+'Main > div')[addclass](AJSHidden);
             $(hAJS+'ImagePreview')[rclass](AJSHidden);
         };

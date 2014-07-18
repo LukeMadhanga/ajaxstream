@@ -109,8 +109,8 @@
 #AJSCloseText:hover {top: 0;opacity: 1;}
 #AJSChooseFile {position: absolute;top: 50%;margin: -20px 0 0 0;text-align: center;width: 100%;}
 #AJSDropZone {background: url('files/dia.png');z-index: 30;position: absolute;width: 100%;height: 100%;top: 0;}
-#AJSDropZone > a {top: 50%;position: absolute;margin: -10px 0;font-size: 20px;}
-#AJSFile {}
+#AJSDropZone > a {top: 50%;position: absolute;margin: -15px 0 0 40px;font-size: 30px;line-height: 30px;font-weight: bold;
+    color: #FFF;border-bottom: solid thin;padding: 0 0 10px;width: 30%;}
 #AJS {width: 80%;border: solid thin #F3F3F3;margin: auto;z-index: 3000;height: 45%;box-sizing: border-box;
       max-width: 960px; max-height: 540px;display:none;}
 #AJSUploadSection > div {position: absolute;width: 100%;height: 100%;text-align: center;}
