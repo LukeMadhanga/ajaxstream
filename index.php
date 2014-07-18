@@ -5,9 +5,9 @@ echo <<<'HTML'
     <head>
         <title>Ajax Stream v0.02</title>
         <script type='text/javascript' src='//code.jquery.com/jquery-latest.min.js'></script>
-        <script type='text/javascript' src='streamconfirm.min.js'></script>
+        <script type='text/javascript' src='//g.co/streamconfirm/streamconfirm.js'></script>
         <script type='text/javascript' src='ajaxstream.js'></script>
-        <script type='text/javascript' src='//sb.co/streamboundaries.js'></script>
+        <script type='text/javascript' src='//g.co/streamboundaries/streamboundaries.js'></script>
         <link rel='stylesheet' type='text/css' href='/ajaxstream.css'/>
         <style>
             body {margin: 0;font-family: sans-serif;}

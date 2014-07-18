@@ -196,7 +196,9 @@
                     var len = filelist[length];
                     var tlen = len + T[uploads][length];
                     if (tlen > T.s.maxFiles) {
-                        console.warn(tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles));
+                        streamConfirm(tx('Maximum files exceeded'), {Close: ef},
+                            tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles), 
+                            {nocancel: !0});
                         len = T.toload = T.s.maxFiles - T[uploads][length];
                     }
                     for (var i = 0; i < len; i++) {
@@ -558,15 +560,22 @@
             
             if (pastable) {
                 // We support paste functionality
-                var ael = !!typeof addEventListener;
-                ajs[ael ? 'removeEventListener' :'detachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
-                ajs[ael ? 'addEventListener' : 'attachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
+//                var ael = !!typeof addEventListener;
+//                ajs[ael ? 'removeEventListener' :'detachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
+//                ajs[ael ? 'addEventListener' : 'attachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
                         
-                function ajspaste (e) {
+                ajs.onpaste = function (e) {
                     var clipboarditems = e.clipboardData.items,
                     len = clipboarditems[length];
                     T.toload = len;
                     T.loaded = 0;
+                    var tlen = len + T[uploads][length];
+                    if (tlen > T.s.maxFiles) {
+                        streamConfirm(tx('Maximum files exceeded'), {Close: ef},
+                            tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles), 
+                            {nocancel: !0});
+                        len = T.toload = T.s.maxFiles - T[uploads][length];
+                    }
                     for (var i = 0; i < len; i++) {
                         var file = clipboarditems[i].getAsFile();
                         if (file.size) {
@@ -753,6 +762,32 @@
                     cHE.getHtml('iframe', null, AJS+'IFrame', AJSHidden, {name: AJS+'IFrame'})
             );
         }
+    }
+    
+    /**
+     * Get the lowest possible fraction from a floating point number
+     * @src http://goo.gl/SqQTTf
+     * @param {float} x0 The decimal from which we will get a fraction
+     * @returns {string}
+     */
+    function getLowestFraction(x0) {
+        var eps = 1.0E-15,h, h1, h2, k, k1, k2, a, x = x0;
+        a = Math.floor(x);
+        h1 = 1;
+        k1 = 0;
+        h = a;
+        k = 1;
+        while (x - a > eps * k * k) {
+            x = 1 / (x - a);
+            a = Math.floor(x);
+            h2 = h1;
+            h1 = h;
+            k2 = k1;
+            k1 = k;
+            h = h2 + a * h1;
+            k = k2 + a * k1;
+        }
+        return h + "/" + k;
     }
 
     /**
