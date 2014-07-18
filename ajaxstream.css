@@ -101,11 +101,11 @@
 .AJSBtn:hover {background: #DDD;}
 .AJSBtnD {height: 40px;line-height: 40px;display: inline-block;box-sizing: border-box;padding: 0 5px;background: #363636;
           border-radius: 3px;font-weight: bold;box-shadow: 0px -1px 0px #686868;margin: 0 10px;color: #A5A5A5;cursor: pointer;
-          position: relative;width:120px;}
+          position: relative;min-width:120px;}
 .AJSBtnD:hover {top: 1px;}
 .AJSBtnDU {box-shadow: none;cursor: default;background: #000;opacity: 0.5;}
 .AJSBtnDU:hover {top: 0;}
-#AJSCloseText {width: 40px;box-shadow: none;background: #850000;color: #FFF;opacity: 0.7;}
+#AJSCloseText {min-width: 40px;width: 40px;box-shadow: none;background: #850000;color: #FFF;opacity: 0.7;}
 #AJSCloseText:hover {top: 0;opacity: 1;}
 #AJSChooseFile {position: absolute;top: 50%;margin: -20px 0 0 0;text-align: center;width: 100%;}
 #AJSDropZone {background: url('files/dia.png');z-index: 30;position: absolute;width: 100%;height: 100%;top: 0;}

@@ -13,6 +13,8 @@
     getHtml = 'getHtml',
     name = 'name',
     ef = function () {},
+    pastable = 'onpaste' in document,
+    draggable = 'draggable' in document.createElement('span'),
     defaults = {
         accept: ['*'],
         allowFilters: !0,
@@ -554,7 +556,7 @@
                 ajsfile[click]();
             });
             
-            if ('onpaste' in ajs) {
+            if (pastable) {
                 // We support paste functionality
                 var ael = !!typeof addEventListener;
                 ajs[ael ? 'removeEventListener' :'detachEvent']((ael ? '' : 'on') + 'paste', ajspaste);
@@ -576,7 +578,7 @@
                 };
             }
             
-            if ('draggable' in document.createElement('span')) {
+            if (draggable) {
                 // If we have drag and drop support, add the functionality
                 document.body.ondragover = function(e) {
                     if ($(e.target).closest('#AJS')[length]) {
@@ -650,7 +652,7 @@
             elem(AJS+'ISave').onclick = T.saveInfo;
             
             $(hAJS+'Remove')[unbind](click)[click](function () {
-                if (confirm(tx('Are you sure you want to delete this file?'))) {
+                streamConfirm(tx('Are you sure you want to remove this file?'), function () {
                     // Remove the file by re-indexing the uploads array
                     var temp = [];
                     for (var i = 0, len = T[uploads][length]; i < len; i++) {
@@ -668,7 +670,7 @@
                     $(hAJS+'ImagePreview')[rclass](AJSHidden);
                     T.toggleLR();
                     T.displayUpload();
-                }
+                }, tx('This does not remove the file from your computer, but just removes it from the list of files to be uploaded'));
             });
             
             $('#AJSClose,#AJSCloseText')[unbind](click)[click](function () {
@@ -846,13 +848,26 @@
     function drawUploader() {
         var choosefile = 
                 cHE.getSpan(tx('Choose file'), AJS+'ChooseText', AJS+'BtnD') + 
-                cHE.getSpan(tx('Paste'), AJS+'PasteText', 'AJSBtnD AJSBtnDU') + 
-                cHE.getSpan(tx('Drop'), AJS+'DropText', 'AJSBtnD AJSBtnDU') + 
-                cHE.getSpan('x', AJS+'CloseText', AJS+'BtnD');
+                (pastable ? cHE.getSpan(getPasteText(), AJS+'PasteText', 'AJSBtnD AJSBtnDU') : '') + 
+                (draggable ? cHE.getSpan(tx('Drop'), AJS+'DropText', 'AJSBtnD AJSBtnDU') : '') + 
+                cHE.getSpan(null, AJS+'CloseText', AJS+'BtnD asicons-cross');
         var outtext = cHE.getDiv(
                 cHE.getInput(AJS+'File', null, AJSHidden, 'file') +
                 cHE.getDiv(choosefile, AJS+'ChooseFile'), AJS+'ChooseSection');
-        return cHE.getDiv(outtext, AJS+'UploadSection') + cHE.getDiv(cHE.getHtml('a', tx('DROP')), AJS+'DropZone', AJSHidden);
+        return cHE.getDiv(outtext, AJS+'UploadSection') + 
+                (draggable ? cHE.getDiv(cHE.getHtml('a', tx('DROP')), AJS+'DropZone', AJSHidden) : '');
+    }
+    
+    /**
+     * Get the text to show on the paste button
+     * @returns {string} The paste text depending on the user's OS
+     */
+    function getPasteText() {
+        var text = tx('Paste (ctrl + v)');
+        if (navigator.platform.match(/Mac/i)) {
+            text = tx('Paste (cmd + v)');
+        }
+        return text;
     }
     
     /**
