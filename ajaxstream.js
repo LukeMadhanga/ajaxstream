@@ -348,7 +348,10 @@
             docanvas = fapi && canv && isimg,
             canvas = $('#'+hid),
             eicon = $('#AJSEdit');
-            if (!canvas[length]) {
+            if (canvas[length]) {
+                // We may have changed from a non image to an image, vice versa. Get the correct element
+                canvas = getCorrectElement(canvas, hid, isimg, docanvas);
+            } else {
                 // A canvas doesn't exist for this upload so create one
                 var inner = '';
                 if (docanvas) {
@@ -364,12 +367,6 @@
                 canvas = $('#' + hid);
             }
             
-            if (canvas[0].tagName === 'CANVAS' && !isimg) {
-                // Recreate
-            } else {
-                // recreate
-            }
-            
             // Now set the src
             if (docanvas) {
                 eicon.removeClass(AJSHidden);
@@ -380,7 +377,7 @@
                     canvas[0].src = src;
                 } else {
                     eicon.addClass(AJSHidden);
-                    canvas.attr({class: 'AJSMIMEIcons ' + getIconStyle(mastermime)});
+                    canvas.attr({class: 'AJSMIMEIcons ' + getIconClass(mastermime, cur.mimetype)});
                     canvas.find('span').html(cur.name);
                 }
             }
@@ -388,6 +385,31 @@
             $('[id^="AJSIMG_"]').addClass(AJSHidden);
             canvas.removeClass(AJSHidden).css({top: (500 - canvas.height())/2});
         };
+        
+        /**
+         * A user may swicth from a non-image to an image. Get the correct element that will allow us to display the uploaded file
+         * @param {object(jQuery)} elem The element to test and possibly change
+         * @param {string} htmlid
+         * @param {boolean} isimg True if the uploaded file is an image
+         * @param {boolean} docanvas True if we should use the canvas element
+         * @returns {object(jQuery)}
+         */
+        function getCorrectElement(elem, htmlid, isimg, docanvas) {
+            var n;
+            if (elem[0].tagName === 'CANVAS' && !isimg) {
+                // Redraw the canvas and make it into a span
+                n = '<span id="' + htmlid + '"><span></span></span>';
+            } else if (elem[0].tagName === 'SPAN' && isimg) {
+                // Redraw the span and make it into either a <canvas> or an <img> depending on support
+                n = document.createElement(docanvas ? 'canvas' : 'img');
+                n.id = htmlid;
+            } else {
+                return elem;
+            }
+            elem.after(n);
+            elem.remove();
+            return $('#' + htmlid);
+        }
         
         /**
          * Render the image onto a canvas element
@@ -455,14 +477,48 @@
         
         /**
          * Get the icon image
-         * @param {type} mime
-         * @returns {String}
+         * @param {string} mime The first part of the mimetype, e.g. video
+         * @param {string} fullmime The full mimetype, e.g. application/javascript
+         * @returns {string} The name of the class to put
          */
-        function getIconStyle (mime) {
+        function getIconClass (mime, fullmime) {
+            switch(fullmime) {
+                case 'application/zip':
+                case 'application/gzip':
+                    return 'asicons-file-zip';
+                case 'text/css':
+                    return 'asicons-file-css';
+                case 'text/javascript':
+                case 'application/javascript':
+                case 'text/php':
+                case 'text/x-php':
+                case 'application/php':
+                case 'application/x-php':
+                case 'text/xml':
+                case 'text/html':
+                    return 'asicons-code';
+                case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                case 'application/vnd.ms-powerpoint':
+                    return 'asicons-file-powerpoint';
+                case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                case 'application/msword':
+                    return 'asicons-file-word';
+                case 'application/vnd.ms-excel':
+                case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                    return 'asicons-file-excel';
+                case 'application/pdf':
+                case 'application/x-pdf':
+                case 'application/vnd.pdf':
+                    return 'asicons-file-pdf';
+                case 'application/vnd.oasis.opendocument.spreadsheet':
+                case 'application/vnd.oasis.opendocument.presentation':
+                case 'application/vnd.oasis.opendocument.text':
+                    return 'asicons-file-openoffice';
+            }
             switch (mime) {
                 case 'application':
                 case 'application-x':
-                    return 'asicons-browser';
+                    return 'asicons-desktop';
                 case 'audio':
                     return 'asicons-microphone';
                 case 'model':
@@ -470,7 +526,7 @@
                 case 'pdf':
                     return 'asicons-file-pdf';
                 case 'text':
-                    return 'asicons-file';
+                    return 'asicons-file-text-o';
                 case 'video':
                     return 'asicons-video';
                 default:
@@ -591,20 +647,24 @@
         T.showInfo = function (){
             var upload = T[uploads][T[currentupload]],
             cd = upload.cropdata,
-            ri = elem('AJSResImg');
+            ri = elem('AJSResImg'),
+            ajsri = $('#AJSRInner'),
+            ajsritrack = $('#AJSRITrack');
             $('#AJSMain > div').addClass(AJSHidden);
             $('#AJSMore').removeClass(AJSHidden);
             $('#AJSSCS').val([upload.resizedWidth, ' x ', upload.resizedHeight].join(''));
             // Reposition the thumb to fit
             ri.src = upload.src;
-            $('#AJSResImg').css({maxWidth: 'none'});
-            $('#AJSRInner').css({width: 'auto'});
+            // Reset the widths so that the element can grow
+            var $ri = $(ri);
+            $ri.css({maxWidth: parseFloat($(win).width())-20});
+            ajsri.css({width: 'auto'});
             var r = ri.getBoundingClientRect(),
-            w = (r.width),
-            h = (r.height);
+            w = r.width,
+            h = r.height;
             var tw = cd.x !== undefined ? cd.x2 - cd.x : w*.8,
             th = cd.y !== undefined ? cd.y2 - cd.y : h*.8;
-            $('#AJSRITrack').streamBoundaries('updateOpts', {
+            ajsritrack.streamBoundaries('updateOpts', {
                 width: w, 
                 height: h, 
                 thumbWidth: tw, 
@@ -614,19 +674,25 @@
                     T.fillEditValues(upload, e);
                 }
             });
-            var pd = $('#AJSRITrack').streamBoundaries('reposition', {x: cd.x || '10%', y: cd.y || '10%'}).positionData;
+            var pd = ajsritrack.streamBoundaries('reposition', {x: cd.x || '10%', y: cd.y || '10%'}).positionData;
             positionRBG(pd);
             pd.rect = r;
             T.fillEditValues(upload, pd, {width: upload.resizedWidth, height: upload.resizedHeight});
-            $('#AJSRInner').width(w);
-            $('#AJSResImg').css({maxWidth: '100%'});
+            ajsri.width(w);
             if (!$('.EIconActive').length) {
                 // We don't have an active edit icon yet, set it to the first one
                 $('.AJSEIcon:first').addClass('EIconActive');
             }
             // Simulate the first button being clicked
             $('.EIconActive').click();
-            $('#AJS').css({minWidth: w > 340 ? w : 340});
+            // Override the minimum width
+            var $ajs = $('#AJS'),
+            mt = (parseFloat(ajsri.height()) - h) / 2;
+            $('#AJSRBG').css({top: -h, height: h});
+            $ajs.css({minWidth: w > 340 ? w : 340, marginLeft:-($ajs.width()/2)});
+            $ri.css({marginTop: mt}).attr({'data-top': mt, 'data-bottom': mt + h});
+            ajsritrack.css({marginTop: mt});
+            winResize();
         };
         
         /**
@@ -644,8 +710,41 @@
             $('#AJSImagePreview').removeClass(AJSHidden);
             $('#AJS').css({minWidth: 'initial'});
             t.css({top: (500 - t.height())/2});
+            winResize();
         };
                
+        /**
+         * The click handler for the upload buttons
+         */
+        function uploadBtnClick() {
+            // Determine what stream we want
+            var asid = $(this)[0].id.replace('AJSUploadBtn_', '');
+            // Set it as the current object
+            T = ZZ.streams[asid];
+//                T.initBinding();
+            var $ajs = $('#AJS');
+            $ajs.show();
+            $ajs.css({marginTop: -($ajs.height()/2), marginLeft: -($ajs.width()/2)});
+            T[uploads][length] ? T.displayUpload() : T.resetToUpload();
+        }
+        
+        /**
+         * The click handler for the form preview icons/images
+         */
+        function ajsfpClick() {
+            // Determine what stream we want
+            var id = $(this)[0].id,
+            index = id.replace(/.*\_(\d+)$/, '$1');
+            id = id.replace(/\_\d+$/, '');
+            var asid = id.replace('AJSFP_', '');
+            // Set it as the current object
+            T = ZZ.streams[asid];
+            T[currentupload] = index;
+            var $ajs = $('#AJS');
+            $ajs.show();
+            $ajs.css({marginTop: -($ajs.height()/2), marginLeft: -($ajs.width()/2)});
+            T.displayUpload(T.uploads[index]);
+        }
         
         /**
          * Initialise all of the events in one function
@@ -674,7 +773,6 @@
             
             if (pastable) {
                 // We support paste functionality
-                        
                 ajs.onpaste = function (e) {
                     var clipboarditems = e.clipboardData.items,
                     len = clipboarditems[length];
@@ -800,19 +898,16 @@
                 // Close the upload screen
                 $('#AJS_' + T.id).val(json_encode(T[uploads]));
                 $(hAJS).hide();
+                if (T.s.showPreviewOnForm) {
+                    $('#AJSFormPrev_' + T.id).html(drawFormPreview());
+                    $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
+                    $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
+                }
             });
             
-            $('[id^=AJSUploadBtn_]').unbind('click').click(function () {
-                // Determine what stream we want
-                var asid = $(this)[prop]('id')[replace]('AJSUploadBtn_', '');
-                // Set it as the current object
-                T = ZZ.streams[asid];
-//                T.initBinding();
-                var $ajs = $('#AJS');
-                $ajs.css({margin: -($ajs.height/2)});
-                $('#AJS').show();
-                T[uploads][length] ? T.displayUpload() : T.resetToUpload();
-            });
+            $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
+            
+            $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
             
             elem('AJSSAR').onchange = function () {
                 var ar,
@@ -944,12 +1039,63 @@
                         
         };
         
+        /**
+         * The window resize handler
+         */
         function winResize () {
             var id = 'AJSIMG_' + T.id + T[currentupload],
             t = $('#'+id);
             if (t.is(':visible')) {
                 t.css({top: (500 - t.height())/2});
             }
+            var $ajs = $('#AJS');
+            $ajs.css({marginLeft: -($ajs.width()/2), marginTop: -($ajs.height()/2)});
+        }
+        
+        /**
+         * If the user wants to see a preview of the uploaded files on the form, build it here
+         * @returns {html}
+         */
+        function drawFormPreview() {
+            var outtext = '',
+            u = T.uploads,
+            iconHeight = parseFloat(T.s.iconPreviewHeight),
+            iconWidth = parseFloat(T.s.iconPreviewWidth);
+            for (var x in u) {
+                var curobj = u[x],
+                mastermime = curobj.mimetype.replace(/\/.*$/, ''),
+                isimg = mastermime === 'image',
+                inner;
+                if (isimg) {
+                    var style;
+                    if (curobj.croppedWidth > curobj.croppedHeight) {
+                        var ar = curobj.croppedWidth / curobj.croppedHeight,
+                        h = iconWidth / ar;
+                        style = 'height: 100%;';
+                    } else {
+                        style = 'width:100%;margin-top:' + ((iconHeight - h) / 2) + ';';
+                    }
+                    inner = cHE.getHtml('img', null, null, null, {
+                        src: curobj.base64, 
+                        'style':  style
+                    });
+                } else {
+                    inner = cHE.getSpan(null, null, getIconClass(mastermime, curobj.mimetype), {
+                        style: 'line-height:' + iconHeight + 'px;font-size:' + (iconWidth - 20) + 'px;'
+                    });
+                }
+                inner += cHE.getDiv(curobj.name, null, 'AJSFPName');
+                outtext += cHE.getDiv(inner, 'AJSFP_' + T.id + '_' + curobj.index, 'AJSFP', {
+                    style: 'width:' + iconWidth + 'px;height:' + iconHeight + 'px;'
+                });
+            }
+            if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles) {
+                // Only show the plus if we can add more
+                outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {
+                    style: 'height:' + iconHeight + 'px;line-height:' + iconHeight + 'px;'
+                });
+            }
+            return outtext;
         }
         
         /**
@@ -957,17 +1103,20 @@
          */
         T.draw = function (){
             // Auto executing
-            var parent = T[par]();
+            var parent = T.parent();
             T.addClass(AJSHidden);
             if (exists($('#AJS_' + T.id))) {
                 var val = $('#AJS_' + T.id).val();
                 T[uploads] = val[length] ? json_decode(val, !0) : [];
-//                T.loadExisting();
             } else {
                 parent.append(cHE.getInput('AJS_' + T.id, null, null, 'hidden'));
             }
+            
             if (T.s.showPreviewOnForm) {
-                
+                // The user wants to see a preivew on the form
+                parent.append(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
+                    style: 'height:' + T.s.iconPreviewHeight
+                }));
             } else {
                 parent.append(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {'data-mandatory': !0}));
             }
@@ -1112,11 +1261,12 @@
     function drawInfoBay () {
         var inner = '';
         inner += cHE.getDiv(
-                    cHE.getDiv(cHE.getDiv(cHE.getHtml('img', null, 'AJSResImg') + cHE.getDiv(cHE.getDiv(), 'AJSRITrack') + 
-                    cHE.getDiv(null, 'AJSCropT') + 
-                    cHE.getDiv(null, 'AJSCropR') + 
-                    cHE.getDiv(null, 'AJSCropB') + 
-                    cHE.getDiv(null, 'AJSCropL'), 
+                    cHE.getDiv(cHE.getDiv(cHE.getHtml('img', null, 'AJSResImg') +
+                    cHE.getDiv(
+                        cHE.getDiv(null, 'AJSCropT') + 
+                        cHE.getDiv(null, 'AJSCropR') + 
+                        cHE.getDiv(null, 'AJSCropB') + 
+                        cHE.getDiv(null, 'AJSCropL'), 'AJSRBG') + cHE.getDiv(cHE.getDiv(), 'AJSRITrack'), 
                         'AJSRInner') + cHE.getDiv(drawEditIcons() + renderEditables(), 
                                 'AJSScaleInfo'), 'AJSRIHolder'), 'AJSInfo');
         return cHE.getDiv(inner + 
