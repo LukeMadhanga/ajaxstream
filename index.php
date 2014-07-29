@@ -3,7 +3,7 @@
 echo <<<'HTML'
 <html>
     <head>
-        <title>Ajax Stream v0.02</title>
+        <title>Ajax Stream v1</title>
         <script type='text/javascript' src='//code.jquery.com/jquery-latest.min.js'></script>
         <script type='text/javascript' src='streamconfirm.js'></script>
         <script type='text/javascript' src='ajaxstream.js'></script>
