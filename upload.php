@@ -3,77 +3,84 @@
 cAjaxStream::processUpload();
 
 class cAjaxStream {
-    
+
     static $settings;
     static $starttime;
     static $cleandir = true;
-    
+
     /**
      * The max length of a file name without the unixtime marker
      */
     const MAX_FILENAME_LENGTH = 120;
+
     /**
      * Maximum time that a file can live in the upload directory (7200 seconds, 2 hours)
      */
     const MAX_TIME_IN_UPLOADS = 7200;
-    
     // Error constants
     /**
      * There was no error
      */
-    const UPLOAD_ERR_OK = 0; 
+    const UPLOAD_ERR_OK = 0;
+
     /**
      * The file uploaded exceeds the PHP ini maximum file size
      */
     const UPLOAD_ERR_INI_SIZE = 1;
+
     /**
      * The file uploaded exceeds the form max file size
      */
     const UPLOAD_ERR_FORM_SIZE = 2;
+
     /**
      * The file was only partially uploaded
      */
     const UPLOAD_ERR_PARTIAL = 3;
+
     /**
      * No file was uploaded
      */
     const UPLOAD_ERR_NO_FILE = 4;
+
     /**
      * There is no temporary directory to upload to
      */
     const UPLOAD_ERR_NO_TMP_DIR = 6;
+
     /**
      * Write failed
      */
     const UPLOAD_ERR_CANT_WRITE = 7;
+
     /**
      * An unknown error caused the upload to fail
      */
     const UPLOAD_ERR_EXTENSION = 8;
-    
+
     /**
      * Process an uploaded file
      */
-    static function processUpload () {
+    static function processUpload() {
         self::$starttime = time();
         self::$settings = $settings = json_decode(filter_input(INPUT_POST, 'AJSLegacy'));
         $file = (object) $_FILES['AJSFileLegacy'];
-        if ($settings->islegacy) {
+        if($settings->islegacy) {
             self::handleLegacy($file);
         }
     }
-    
+
     /**
      * Upload a file using legacy methods
      * @param object(StdClass) $file The uploaded file object from the $_FILES super global
      */
     static function handleLegacy($file) {
-        if ($file->error) {
+        if($file->error) {
             // The error code is non-zero, i.e. there has been error
             $result = json_encode(array('moved' => false, 'error' => self::getErrorMessage($file->error)));
         } else {
             self::setDestination();
-            if (self::$cleandir) {
+            if(self::$cleandir) {
                 self::cleanDir();
             }
             $filename = self::sanitiseFilename($file->name);
@@ -82,24 +89,51 @@ class cAjaxStream {
                 $filepath = str_replace(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT'), '', $destination);
                 $error = null;
                 $moved = move_uploaded_file($file->tmp_name, $destination);
-                if (!$moved) {
+                if(!$moved) {
                     $lasterror = error_get_last();
                     $error = $lasterror['message'];
                 }
-                if (preg_match("/image\/*/", $file->type)) {
+                if(preg_match("/image\/*/", $file->type)) {
                     $imagedata = getimagesize($destination);
-                    if ($imagedata) {
-                        // Resize etc.
+                    if($imagedata) {
+                        $dimensions = new stdClass;
+                        $width = $imagedata[0];
+                        $height = $imagedata[1];
+                        $maxWidth = self::$settings->maxwidth;
+                        $maxHeight = self::$settings->maxheight;
+                        if($width > $height) {
+                            if($width > $maxWidth) {
+                                $height = round($height * $maxWidth / $width);
+                                $width = $maxWidth;
+                            }
+                        } else {
+                            if($height > $maxHeight) {
+                                $width = round($width * $maxHeight / $height);
+                                $height = $maxHeight;
+                            }
+                        }
+                        $dimensions->width = $width;
+                        $dimensions->height = $height;
+                        self::imageScaleAndSave($destination, $destination, $maxWidth, $maxHeight);
+                    } else {
+                        $lasterror = error_get_last();
+                        throw new Exception($lasterror['message']);
                     }
                 }
-                $result = json_encode(array(
-                    'location' => $filepath, 
-                    'moved' => $moved, 
-                    'error' => $error, 
-                    'type' => $file->type,
+                $resultsarray = array(
+                    'location' => $filepath,
+                    'moved' => $moved,
+                    'error' => $error,
+                    'mimetype' => $file->type,
                     'id' => self::$settings->id
-                ));
-            } catch (Exception $ex) {
+                );
+                if($dimensions) {
+                    // Add the image data to output
+                    $resultsarray['width'] = $dimensions->width;
+                    $resultsarray['height'] = $dimensions->height;
+                }
+                $result = json_encode($resultsarray);
+            } catch(Exception $ex) {
                 $result = json_encode(array('moved' => false, 'error' => $ex->getMessage()));
             }
         }
@@ -111,14 +145,14 @@ class cAjaxStream {
 JS;
         exit;
     }
-    
+
     /**
      * Determine the error message to send back
      * @param int $e The incident code
      * @return string The error message
      */
     private static function getErrorMessage($e) {
-        switch ($e) {
+        switch($e) {
             case self::UPLOAD_ERR_INI_SIZE:
                 return 'The uploaded file exceeds the maximum set';
             case self::UPLOAD_ERR_FORM_SIZE:
@@ -135,40 +169,40 @@ JS;
                 return 'Server Error: Quote upload error 8';
         }
     }
-    
+
     /**
      * Set the destination path for the uploaded file
      * @return string The destination path
      */
-    private static function setDestination () {
+    private static function setDestination() {
         $uploaddir = self::$settings->uploaddir;
-        if (!preg_match("/\/$/", $uploaddir)) {
+        if(!preg_match("/\/$/", $uploaddir)) {
             // The upload dir requires a '/' at the end
             $uploaddir = self::$settings->uploaddir = "{$uploaddir}/";
         }
-        if (substr($uploaddir, 0, 1) === '/') {
+        if(substr($uploaddir, 0, 1) === '/') {
             $uploaddir = self::$settings->uploaddir = substr($uploaddir, 0);
         }
         self::$settings->uploaddir = filter_input(INPUT_SERVER, 'DOCUMENT_ROOT') . "/$uploaddir";
     }
-    
+
     /**
      * Clean the upload directory
      */
     private static function cleanDir() {
         $filelist = glob(self::$settings->uploaddir . '[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*');
-        foreach ($filelist as $path) {
+        foreach($filelist as $path) {
             $pathbits = explode('/', $path);
             $filename = end($pathbits);
             $namebits = explode('-', $filename);
             $ut = (int) $namebits[0];
-            if ($ut && (self::$starttime - $ut > self::MAX_TIME_IN_UPLOADS)) {
+            if($ut && (self::$starttime - $ut > self::MAX_TIME_IN_UPLOADS)) {
                 // If we should delete this file
                 unlink($path);
             }
         }
     }
-    
+
     /**
      * @brief Sanitise a file name ready for storing in our database.
      *
@@ -179,26 +213,26 @@ JS;
      * @throws Exception
      */
     static function sanitiseFilename($fname) {
-        if (empty($fname)) {
+        if(empty($fname)) {
             throw new Exception('cFile::sanitiseFilename: file name may not be empty');
         }
         // Strip all unwanted characters from the filename and break it into filename and extension
         $bits = explode('.', preg_replace('/[^a-z0-9\_\.]/', '_', strtolower(self::stripAccents($fname))));
-        if (count($bits) > 1) {
+        if(count($bits) > 1) {
             $ext = array_pop($bits);
         } else {
             $ext = false;
         }
         return substr(implode('.', $bits), 0, self::MAX_FILENAME_LENGTH) . ($ext ? ".$ext" : '');
     }
-    
+
     /**
      * @brief Strip the accents from a UTF-8 string
      * @param $str string The text to be processed
      * @return The stripped string
      */
     public static function stripAccents($str) {
-        if (!function_exists('mb_convert_encoding')) {
+        if(!function_exists('mb_convert_encoding')) {
             return $str;
         }
         // First, deal with HTML entities.
@@ -215,7 +249,7 @@ JS;
         $scaron = chr(0xc5) . chr(0xa1);
         $imacronu = chr(0xc4) . chr(0xaa);
         $imacron = chr(0xc4) . chr(0xab);
-        $sharpsu = chr(0xe1) . chr(0xba). chr(0x9E);
+        $sharpsu = chr(0xe1) . chr(0xba) . chr(0x9E);
         $sharps = chr(0xc3) . chr(0x9f);
         $str = str_replace(array($rcaronu, $rcaron, $ecaronu, $ecaron, $scaronu, $scaron, $ccaronu, $ccaron, $imacronu, $imacron,
             $sharpsu, $sharps, chr(0xa0)), array('R', 'r', 'E', 'e', 'S', 's', 'C', 'c', 'I', 'i', 'SS', 'ss', '&nbsp;'), $s);
@@ -232,15 +266,160 @@ JS;
         );
         $str = mb_convert_encoding($str, "iso-8859-1", "utf-8");
         $out = "";
-        for ($i = 0; $i < strlen($str); $i++) {
+        for($i = 0; $i < strlen($str); $i++) {
             $c = $str[$i];
             $o = ord($c);
-            if ($o > 191 && array_key_exists($o, $transtable)) {
+            if($o > 191 && array_key_exists($o, $transtable)) {
                 $c = $transtable[$o];
             }
             $out .= $c;
         }
         return $out;
     }
-    
+
+    /**
+     * @brief Take an image in a file, scale/crop it, and save it to an output path (which may be the same as the input)
+     * @param $fnamefrom string Pathname of the input file
+     * @param $fnameto string Pathname of the output file
+     * @param $maxwidth int Max width of the output image in pixels
+     * @param $maxheight int Max height of the output image in pixels
+     * @param $square boolean True to crop the image to square
+     * @throws Exception
+     */
+    static function imageScaleAndSave($fnamefrom, $fnameto, $maxwidth, $maxheight, $square = false) {
+        $size = @getimagesize($fnamefrom);
+        if(!$size) {
+            throw new Exception('Unable to get image: ' . $fnamefrom);
+        }
+        $width = $size[0];
+        $height = $size[1];
+        $imagetype = $size[2];
+        // If we don't need to do any scaling, just copy the file. This means that an animated gif of the correct size
+        // will pass through unscathed.
+        if($width <= $maxwidth && $height <= $maxheight) {
+            if(!$square || ($square && $width == $height)) {
+                $data = @file_get_contents($fnamefrom);
+                if($data === false) {
+                    $error = error_get_last();
+                    throw new Exception("imageScaleAndSave: failed to read $fnamefrom: " . $error['message']);
+                }
+                if(!@file_put_contents($fnameto, $data)) {
+                    $error = error_get_last();
+                    throw new Exception("imageScaleAndSave: failed to write $fnameto: " . $error['message']);
+                }
+            }
+            return;
+        }
+        switch($imagetype) {
+            case IMAGETYPE_PNG:
+                $image = imagecreatefrompng($fnamefrom);
+                $target = self::imageScale($image, $maxwidth, $maxheight, $square);
+                if(!imagepng($target, $fnameto)) {
+                    throw new Exception('Failed to write image file: ' . $fnameto);
+                };
+                break;
+            case IMAGETYPE_JPEG:
+                $image = imagecreatefromjpeg($fnamefrom);
+                if(!$image) {
+                    throw new Exception('Failed to read image file: ' . $fnamefrom);
+                }
+                $target = self::imageScale($image, $maxwidth, $maxheight, $square);
+                if(!$target) {
+                    return false;
+                }
+                if(!imagejpeg($target, $fnameto, 100)) {
+                    throw new Exception('Failed to write image file: ' . $fnameto);
+                }
+                break;
+            case IMAGETYPE_GIF:
+                $image = imagecreatefromgif($fnamefrom);
+                $target = self::imageScale($image, $maxwidth, $maxheight, $square);
+                if(!$target) {
+                    return false;
+                }
+                if(!imagegif($target, $fnameto)) {
+                    throw new Exception('Failed to write image file: ' . $fnameto);
+                }
+                break;
+            default:
+                throw new Exception('Unsupported image type: ' . $fnamefrom);
+        }
+        if($image != $target) {
+            imagedestroy($target);
+        }
+        imagedestroy($image);
+    }
+
+    /**
+     * @brief Make a copy of an image, scaling it to fit inside a given target size, and optionally cropping it to square
+     * If the image already fits, just copy it.
+     * @param $img resource image to be scaled
+     * @param $maxwidth int max width in pixels
+     * @param $maxheight int max height in pixels
+     * @param $square boolean Crop the image to square
+     * @return Resource The scaled image
+     * @throws Exception
+     */
+    static function imageScale($img, $maxwidth, $maxheight, $square = false) {
+        global $imgtrace;
+        $width = imagesx($img);
+        $height = imagesy($img);
+        $src_x = 0;
+        $src_y = 0;
+        $needcrop = false;
+        if($square) {
+            // We may need to crop the image. Let's see.
+            if($width > $height) {
+                // Image is too wide, need to crop horizontally
+                $src_x = ($width - $height) / 2; // Offset so the the cropped region is centred
+                $width = $height;
+                $needcrop = true;
+            } else if($height > $width) {
+                // Image is too narrow, need to crop verticaly
+                $src_y = ($height - $width) / 2;
+                $height = $width;
+                $needcrop = true;
+            }
+        }
+        $xscale = false; // Haven't set it yet
+        if($needcrop) {
+            // If the cropped image is no bigger than its target, force the scale to 1
+            if($width <= $maxwidth && $height <= $maxheight) {
+                $xscale = 1;
+                $yscale = 1;
+                $targetwidth = $width;
+                $targetheight = $height;
+            }
+        } else {
+            // If the image is no bigger than its target and isn't being cropped, simply copy it to the answer
+            if($width <= $maxwidth && $height <= $maxheight) {
+                return $img;
+            }
+        }
+        if($xscale === false) {
+            // Work out the scaling needed to make the image fit
+            $xscale = $maxwidth / $width;
+            $yscale = $maxheight / $height;
+            if($xscale < $yscale) {
+                // The xscale is smaller - i.e. we will be scaling the width to the target
+                $targetwidth = $maxwidth;
+                $targetheight = intval($height * $xscale);
+            } else {
+                // The yscale is smaller (or the same) i.e. we will be scaling the height to the target
+                $targetheight = $maxheight;
+                $targetwidth = intval($width * $yscale);
+            }
+        }
+        $imgtrace = "($width,$height)=>($targetwidth,$targetheight) $xscale $yscale";
+        // Now do the scaling
+        $answer = @imagecreatetruecolor($targetwidth, $targetheight);
+        if(!$answer) {
+            throw new Exception("Failed to create image with width $targetwidth height $targetheight");
+        }
+        if(!@imagecopyresampled($answer, $img, 0, 0, $src_x, $src_y, $targetwidth, $targetheight, $width, $height)) {
+            throw new Exception('Failed to scale image');
+        }
+        return $answer;
+    }
+
 }

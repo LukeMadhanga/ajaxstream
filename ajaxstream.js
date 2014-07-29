@@ -5,13 +5,15 @@
     prop = 'prop',
     AJS = 'AJS',
     hAJS = '#AJS',
-    dAJS = '.AJS',
     AJSHidden = 'AJSHidden',
     replace = 'replace',
     name = 'name',
     ef = function () {},
     pastable = 'onpaste' in document,
     draggable = 'draggable' in document.createElement('span'),
+    fapi = !!(win.Blob || win.File || win.FileList || win.FileReader),
+    canvtest = document.createElement('canvas'),
+    canv = !!(canvtest.getContext && canvtest.getContext('2d')),
     defaults = {
         accept: ['*'],
         allowFilters: !0,
@@ -72,13 +74,7 @@
             return T;
         }
         var body = $('body'),
-        fapi = !!(win.Blob || win.File || win.FileList || win.FileReader),
-        canvtest = document.createElement('canvas'),
-        canv = !!(canvtest.getContext && canvtest.getContext('2d')),
         // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
-        par = 'parent',
-        click = 'click',
-        unbind = 'unbind',
         change = 'change',
         attr = 'attr',
         uploads = 'uploads',
@@ -130,13 +126,17 @@
             var file = input.files[0],
             index = T[changing] === !1 ? T[uploads][length] : T[changing];
             T.filedata = {
-                customFields:[],
-                name: file[name],
-                mimetype: file.type,
-                size: file.size,
-                newupload: !0,
+                base64 :null,
+                croppedWidth: null,
+                croppedHeight: null,
                 index: index,
-                islegacy: !0
+                islegacy: !0,
+                mimetype: file.type,
+                name: file[name],
+                newupload: !0,
+                resizedWidth: null,
+                resizedHeight: null,
+                size: file.size
             };
             // Make a global reference to 'T' so that we can call it from our iFrame
             win['AJSLegacy'] = ZZ.streams[T.id];
@@ -151,6 +151,7 @@
             $('#AJSLegacyForm')[prop]({action: T.s.uploadScript});
             T.event('legacyuploadstart', input, {original: T, file:file});
             $('#AJSLegacyForm').submit();
+            $('#AJSLoading').removeClass(AJSHidden);
         };
 
         /**
@@ -158,8 +159,15 @@
          * @param {object(plain)} results The results from our upload
          */
         T.afterLegacyUpload = function(results) {
+            $('#AJSLoading').addClass(AJSHidden);
             if (results.moved) {
                 // The file was successfully uploaded, so we can continue
+                if (results.mimetype.match('image/*')) {
+                    T.filedata.croppedWidth = T.filedata.resizedWidth = results.width;
+                    T.filedata.croppedHeight = T.filedata.resizedHeight = results.height;
+                }
+                T.currentlength++;
+                T.filedata.base64 = results.location;
                 T.filedata.src = results.location;
                 T.event('legacyuploadfinish', null, {original: T, results:results});
                 T.afterFileRead(T.filedata, T[changing] !== !1);
@@ -167,7 +175,7 @@
             } else {
                 // There was an error so alert the user
                 T.event('legacyuploadfail', null, {original: T, error:results.error, results: results});
-                alert(results.error);
+                streamConfirm(tx('Error'), {Close: ef}, results.error, {nocancel: !0});
             }
         };
         
@@ -219,7 +227,8 @@
         T.process = function (file, i, changing, target) {
             $('#AJSLoading').removeClass(AJSHidden);
             if (is_a('blob', file) || is_a('file', file)) {
-                var fr = new FileReader();
+                var fr = new FileReader(),
+                isimg = file.type.match('image/*');
                 fr.onload = function(e) {
                     var blob = new Blob([e.target.result], {type: file.type}),
                     dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
@@ -237,7 +246,7 @@
                     if (!changing) {
                         T[currentlength]++;
                     }
-                    if (file.type.match('image/*')) {
+                    if (isimg) {
                         // If this is an image, then there is some extra information that we can add
                         var img = new Image();
                         img.onload = function() {
@@ -252,12 +261,22 @@
                         img.src = dataURL;
                     } else {
                         // Load normally
+                        filedata.base64 = e.target.result;
                         T.afterFileRead(filedata, changing, target);
                     }
                 };
-                fr.readAsArrayBuffer(file);
+                fr.onerror = function (e) {
+                    var error = e.currentTarget.error;
+                    $('#AJSLoading').addClass(AJSHidden);
+                    streamConfirm(tx('Error'), {Close: ef}, tx('There was an error processing the selected file.\n\
+                        Make sure what you selected was indeed a file. Full details') + ': ' + error.message, {nocancel: !0});
+                    console.error(error.name + ': ' + error.message);
+                };
+                // To get the base64 of a non-image, we need to use readAsDataURL
+                isimg ? fr.readAsArrayBuffer(file) : fr.readAsDataURL(file);
             } else {
-                console.warn(tx('The selection is not a file'));
+                // We were given something dodgy
+                streamConfirm(tx('Error'), {Close: ef}, tx('The selection is not a file'), {nocancel: !0});
             }
         };
         
@@ -327,10 +346,11 @@
                     cur = T.getCurr(gotoend);
                 }
                 // Determine whether the add button should be disabled
-                $('#AJSAdd')[T[currentlength] + 1 > T.s.maxFiles ? 'addClass' : 'removeClass'](AJSHidden);
+                $('#AJSAdd')[T.currentlength + 1 > T.s.maxFiles ? 'addClass' : 'removeClass'](AJSHidden);
                 var src = cur.mimetype.match('image/*') ? cur.src : null;
                 T.toggleLR();
                 T.drawImage(cur, src);
+                T.currentupload = cur.index;
             } else {
                 T.resetToUpload();
             }
@@ -384,6 +404,12 @@
             // Hide the others but make this one visible
             $('[id^="AJSIMG_"]').addClass(AJSHidden);
             canvas.removeClass(AJSHidden).css({top: (500 - canvas.height())/2});
+            if (!fapi && isimg) {
+                // This is an image and we therefore have to wait for the image to actually load
+                canvas[0].onload = function () {
+                    canvas.css({top: (500 - canvas.height())/2});
+                };
+            }
         };
         
         /**
@@ -424,21 +450,10 @@
                 img.src = cur.base64;
             }
             var width = img.width,
-            height = img.height;
-            // calculate the width and height, constraining the proportions
-            if (width > height) {
-                if (width > T.s.maxWidth) {
-                    //height *= max_width / width;
-                    height = Math.round(height *= T.s.maxWidth / width);
-                    width = T.s.maxWidth;
-                }
-            } else {
-                if (height > T.s.maxHeight) {
-                    //width *= max_height / height;
-                    width = Math.round(width *= T.s.maxHeight / height);
-                    height = T.s.maxHeight;
-                }
-            }
+            height = img.height,
+            calculated = calcWidthHeight(width, height, T.s.maxWidth, T.s.maxHeight);
+            width = calculated.width;
+            height = calculated.height;
             cur.resizedWidth = canvas.width = width;
             cur.resizedHeight = canvas.height = height;
             var ctx = canvas.getContext("2d");
@@ -460,17 +475,22 @@
                 // The browser supports the canvas api
                 var ctx = canvas.getContext('2d'),
                 ri = $('#AJSResImg'),
-                ow = cur.resizedWidth,
-                oh = cur.resizedHeight,
                 w = data.x2 - data.x,
                 h = data.y2 - data.y,
-                scaleX = ow/ri.width(),
-                scaleY = oh/ri.height();
-                w *= scaleX;
-                h *= scaleY;
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(img, -(data.x*scaleX), -(data.y*scaleY), ow, oh);
+                ow = cur.width,
+                oh = cur.height;
+                w *= (ow / ri.width());
+                h *= (oh / ri.height());
+                var calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight),
+                cw = calculated.width,
+                ch = calculated.height;
+                var sx = cw / w,
+                sy = ch / h;
+                cur.croppedWidth = canvas.width = cw;
+                cur.croppedHeight = canvas.height = ch;
+                var x = -data.x * (ow / ri.width()) * sx;
+                var y = -data.y * (oh / ri.height()) * sy;
+                ctx.drawImage(img, x, y, ow * sx, oh * sy);
                 cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
             }
         };
@@ -619,14 +639,23 @@
             $('#AJSRITrack,[id^=AJSCrop]').removeClass(AJSHidden);
         };
         
+        /**
+         * Fill the edit values in the edit screen
+         * @param {object(plain)} upload The object that describes the uploaded file that is being edited
+         * @param {object(plain)} positionData The object that describes the position data of the crop handle
+         * @param {object(plain)} canvasData The object that describes the size of the canvas
+         */
         T.fillEditValues = function (upload, positionData, canvasData) {
             if (positionData) {
                 // We have been given positionData
                 var r = positionData.rect,
                 w = r.width,
                 h = r.height,
-                ow = Math.round((positionData.x2 - positionData.x) * (upload.resizedWidth / w).toFixed(20)),
-                oh = Math.round((positionData.y2 - positionData.y) * (upload.resizedHeight / h).toFixed(20));
+                ow = Math.round((positionData.x2 - positionData.x) * (upload.width / w).toFixed(20)),
+                oh = Math.round((positionData.y2 - positionData.y) * (upload.height / h).toFixed(20));
+                var calculated = calcWidthHeight(ow, oh, T.s.maxWidth, T.s.maxHeight);
+                ow = calculated.width;
+                oh = calculated.height;
                 elem('AJSSAR').value = getLowestFraction(ow/oh);
                 elem('AJSSW').value = ow;
                 elem('AJSSH').value = oh;
@@ -652,7 +681,6 @@
             ajsritrack = $('#AJSRITrack');
             $('#AJSMain > div').addClass(AJSHidden);
             $('#AJSMore').removeClass(AJSHidden);
-            $('#AJSSCS').val([upload.resizedWidth, ' x ', upload.resizedHeight].join(''));
             // Reposition the thumb to fit
             ri.src = upload.src;
             // Reset the widths so that the element can grow
@@ -674,10 +702,13 @@
                     T.fillEditValues(upload, e);
                 }
             });
-            var pd = ajsritrack.streamBoundaries('reposition', {x: cd.x || '10%', y: cd.y || '10%'}).positionData;
+            var pd = ajsritrack.streamBoundaries('reposition', {
+                x: cd.x || cd.x === 0 ? cd.x : '10%', 
+                y: cd.y || cd.y === 0 ? cd.y : '10%'
+            }).positionData;
             positionRBG(pd);
             pd.rect = r;
-            T.fillEditValues(upload, pd, {width: upload.resizedWidth, height: upload.resizedHeight});
+            T.fillEditValues(upload, pd, {width: upload.width, height: upload.height});
             ajsri.width(w);
             if (!$('.EIconActive').length) {
                 // We don't have an active edit icon yet, set it to the first one
@@ -744,6 +775,8 @@
             $ajs.show();
             $ajs.css({marginTop: -($ajs.height()/2), marginLeft: -($ajs.width()/2)});
             T.displayUpload(T.uploads[index]);
+            $('#AJSMain > div').addClass(AJSHidden);
+            $('#AJSImagePreview').removeClass(AJSHidden);
         }
         
         /**
@@ -767,7 +800,7 @@
             
             $('#AJSChooseText').unbind('click').click(function (){
                 T.addingmore = !0;
-                T[changing] = !1;
+                T.changing = !1;
                 ajsfile.click();
             });
             
@@ -787,10 +820,12 @@
                     }
                     for (var i = 0; i < len; i++) {
                         var file = clipboarditems[i].getAsFile();
-                        if (file.size) {
+                        if (file && file.size) {
+                            T.addingmore = !0;
                             T.process(file, i);
                         } else {
-                            console.warn(tx('There was an error processing the file you pasted'));
+                            streamConfirm(tx('Error'), {Close: ef}, 
+                                tx('There was an error processing the file you pasted'), {nocancel: !0});
                         }
                     }
                 };
@@ -799,15 +834,15 @@
             if (draggable) {
                 // If we have drag and drop support, add the functionality
                 document.body.ondragover = function(e) {
-                    if ($(e.target).closest('#AJS')[length]) {
+                    if (e.target.id === 'AJSMainOverlay') {
+                        // Show that the place being hovered over is not the drop zone
+                        $('#AJSDropZone').addClass(AJSHidden);
+                    } else {
                         // If the file is above the drop zone, prepare to accept it
                         e.stopPropagation();
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'copy';
                         $('#AJSDropZone').removeClass(AJSHidden);
-                    } else {
-                        // Else show that the place being hovered over is not the drop zone
-                        $('#AJSDropZone').addClass(AJSHidden);
                     }
                 };
                 document.body.ondrop = function(e) {
@@ -817,6 +852,7 @@
                     if ($(e.target).closest('#AJS')[length]) {
                         // Only accept drops inside the drop zone
                         $('#AJSDropZone').addClass(AJSHidden);
+                        T.addingmore = !0;
                         T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
                     }
                 };
@@ -860,33 +896,59 @@
                 T.changePrev();
             });
             
-            elem('AJSEdit').onclick = T.showInfo;
+            var ajsicancel = elem('AJSICancel'),
+            ajsisave = elem('AJSISave'),
+            ajssw = elem('AJSSW'),
+            ajssh = elem('AJSSH'),
+            ajssar = elem('AJSSAR'),
+            ajsedit = elem('AJSEdit');
             
-            elem('AJSICancel').onclick = function () {
-                $('#AJSMain > div').addClass(AJSHidden);
-                $('#AJSImagePreview').removeClass(AJSHidden);
-                var t = $('#' + 'AJSIMG_' + T.id + T[currentupload]);
-                $('#AJS').css({minWidth: 'initial'});
-                t.css({top: (500 - t.height())/2});
-            };
+            if (ajsedit) {
+                ajsedit.onclick = T.showInfo;
+            }
             
-            elem('AJSISave').onclick = T.saveInfo;
+            if (ajsicancel) {
+                ajsicancel.onclick = function () {
+                    $('#AJSMain > div').addClass(AJSHidden);
+                    $('#AJSImagePreview').removeClass(AJSHidden);
+                    var t = $('#' + 'AJSIMG_' + T.id + T[currentupload]);
+                    $('#AJS').css({minWidth: 'initial'});
+                    t.css({top: (500 - t.height())/2});
+                    winResize();
+                };
+            }
+            
+            if (ajsisave) {
+                ajsisave.onclick = T.saveInfo;
+            }
             
             $('#AJSRemove').unbind('click').click(function () {
                 streamConfirm(tx('Are you sure you want to remove this file?'), function () {
                     // Remove the file by re-indexing the uploads array
-                    var temp = [];
+                    var temp = [],
+                    todelete = !1,
+                    curupload = !1;
                     for (var i = 0, len = T[uploads][length]; i < len; i++) {
                         if (T[uploads][i] && i !== T[currentupload]) {
-                            temp.push(T[uploads][i]);
+                            // We also need to reindex the uploaded file before saving
+                            var upload = T.uploads[i];
+                            upload.index = temp.length;
+                            temp.push(upload);
+                            if (curupload !== !1 && todelete !== !1) {
+                                // Set the new currrentupload
+                                curupload = i;
+                            }
+                        } else {
+                            todelete = i;
                         }
                     }
                     // Remove the image for this upload
                     $('#AJSIMG_' + T.id + T[currentupload]).remove();
-                    T[uploads] = temp;
-                    T[currentlength] = T[uploads][length];
+                    T.uploads = temp;
+                    T.currentlength = T.uploads.length;
+                    T.currentupload = curupload !== false ? curupload : 0;
                     // Update the value for this input
-                    $('#AJS_' + T.id).val(json_encode(T[uploads]));
+                    $('#AJS_' + T[0].id).val(json_encode(T.uploads));
                     $('#AJSUploadSection').addClass(AJSHidden);
                     $('#AJSImagePreview').removeClass(AJSHidden);
                     T.toggleLR();
@@ -896,7 +958,7 @@
             
             $('#AJSClose,#AJSCloseText').unbind('click').click(function () {
                 // Close the upload screen
-                $('#AJS_' + T.id).val(json_encode(T[uploads]));
+                $('#AJS_' + T[0].id).val(json_encode(T[uploads]));
                 $(hAJS).hide();
                 if (T.s.showPreviewOnForm) {
                     $('#AJSFormPrev_' + T.id).html(drawFormPreview());
@@ -909,127 +971,133 @@
             
             $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
             
-            elem('AJSSAR').onchange = function () {
-                var ar,
-                v = this.value,
-                pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                upload = T[uploads][T[currentupload]];
-                if (v && v.match(/^\d+(:?\.\d+)?(:?\/|\:)\d+(:?\.\d+)?$/)) {
-                    // We've been given an aspect ratio in the form xx/yy or xx:yy
-                    var input = v.split(/[\/|\:]/);
-                    ar = input[0] / input[1];
-                } else if (v && v.match(/^(:?\d+|\d+\.\d+)$/)) {
-                    // The aspect ratio is in the form of x or x.yyy
-                    ar = Number(v);
-                } else {
-                    // We've been given something dodgy
-                    return;
-                }
-                var r = elem('AJSResImg').getBoundingClientRect(),
-                scaleX = upload.resizedWidth / r.width,
-                scaleY = upload.resizedHeight / r.height,
-                w = pd.x2 - pd.x,
-                nh = Math.round(w / ar),
-                x = false,
-                y = false;
-                if (nh + pd.y > r.height) {
-                    // What we've made overflows the window,
-                    y = r.height - nh;
-                    if (nh > r.height) {
-                        nh = r.height;
-                        w = Math.round(nh * ar);
-                        y = 0;
-                        if (w + pd.x > r.width) {
-                            // We're too far to the right
-                            x = r.width - w;
+            if (ajssar) {
+                ajssar.onchange = function () {
+                    var ar,
+                    v = this.value,
+                    pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
+                    upload = T[uploads][T[currentupload]];
+                    if (v && v.match(/^\d+(:?\.\d+)?(:?\/|\:)\d+(:?\.\d+)?$/)) {
+                        // We've been given an aspect ratio in the form xx/yy or xx:yy
+                        var input = v.split(/[\/|\:]/);
+                        ar = input[0] / input[1];
+                    } else if (v && v.match(/^(:?\d+|\d+\.\d+)$/)) {
+                        // The aspect ratio is in the form of x or x.yyy
+                        ar = Number(v);
+                    } else {
+                        // We've been given something dodgy
+                        return;
+                    }
+                    var r = elem('AJSResImg').getBoundingClientRect(),
+                    scaleX = upload.width / r.width,
+                    scaleY = upload.height / r.height,
+                    w = pd.x2 - pd.x,
+                    nh = Math.round(w / ar),
+                    x = false,
+                    y = false;
+                    if (nh + pd.y > r.height) {
+                        // What we've made overflows the window,
+                        y = r.height - nh;
+                        if (nh > r.height) {
+                            nh = r.height;
+                            w = Math.round(nh * ar);
+                            y = 0;
+                            if (w + pd.x > r.width) {
+                                // We're too far to the right
+                                x = r.width - w;
+                            }
                         }
                     }
-                }
-                var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
-                    thumbWidth: w,
-                    thumbHeight: nh,
-                    x: x,
-                    y: y
-                }).positionData;
-                elem('AJSSW').value = Math.round(w * scaleX);
-                elem('AJSSH').value = Math.round(nh * scaleY);
-                // Now that we have resized, reposition the translucent background
-                positionRBG(npd);
-            };
+                    var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
+                        thumbWidth: w,
+                        thumbHeight: nh,
+                        x: x,
+                        y: y
+                    }).positionData;
+                    elem('AJSSW').value = Math.round(w * scaleX);
+                    elem('AJSSH').value = Math.round(nh * scaleY);
+                    // Now that we have resized, reposition the translucent background
+                    positionRBG(npd);
+                };
+            }
             
-            elem('AJSSW').onchange = function () {
-                var v = this.value,
-                r = elem('AJSResImg').getBoundingClientRect(),
-                pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                upload = T[uploads][T[currentupload]],
-                x = false;
-                if (v && v.match(/\%/)) {
-                    v = r.width * (v.replace('%','')/100);
-                } else {
-                    v = Number(v);
-                }
-                if (!v) {
-                    // We were given something dodgy. Return
-                    return;
-                }
-                var scale = upload.resizedWidth / r.width,
-                w = Math.round(v / scale),
-                h = pd.y2 - pd.y;
-                if (w + pd.x > r.width) {
-                    x = r.width - w;
-                } 
-                if (w > r.width) {
-                    // The value that we have been given is wider than the image
-                    w = r.width;
-                    x = 0;
-                    this.value = upload.resizedWidth;
-                } 
-                var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
-                    thumbWidth: w,
-                    thumbHeight: h,
-                    x: x
-                }).positionData;
-                // Now that we have resized, reposition the translucent background
-                positionRBG(npd);
-                elem('AJSSAR').value = getLowestFraction(w/h);
-            };
+            if (ajssw) {
+                ajssw.onchange = function () {
+                    var v = this.value,
+                    r = elem('AJSResImg').getBoundingClientRect(),
+                    pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
+                    upload = T[uploads][T[currentupload]],
+                    x = false;
+                    if (v && v.match(/\%/)) {
+                        v = r.width * (v.replace('%','')/100);
+                    } else {
+                        v = Number(v);
+                    }
+                    if (!v) {
+                        // We were given something dodgy. Return
+                        return;
+                    }
+                    var scale = upload.width / r.width,
+                    w = Math.round(v / scale),
+                    h = pd.y2 - pd.y;
+                    if (w + pd.x > r.width) {
+                        x = r.width - w;
+                    } 
+                    if (w > r.width) {
+                        // The value that we have been given is wider than the image
+                        w = r.width;
+                        x = 0;
+                        this.value = upload.width;
+                    } 
+                    var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
+                        thumbWidth: w,
+                        thumbHeight: h,
+                        x: x
+                    }).positionData;
+                    // Now that we have resized, reposition the translucent background
+                    positionRBG(npd);
+                    elem('AJSSAR').value = getLowestFraction(w/h);
+                };
+            }
             
-            elem('AJSSH').onchange = function () {
-                var v = this.value,
-                r = elem('AJSResImg').getBoundingClientRect(),
-                pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                upload = T[uploads][T[currentupload]],
-                y = false;
-                if (v && v.match(/\%/)) {
-                    v = r.height * (v.replace('%','')/100);
-                } else {
-                    v = Number(v);
-                }
-                if (!v) {
-                    // We were given something dodgy, return.
-                    return;
-                }
-                var scale = upload.resizedHeight / r.height,
-                h = Math.round(v / scale),
-                w = pd.x2 - pd.x;
-                if (h + pd.y > r.height) {
-                    h = r.height - h;
-                } 
-                if (h > r.height) {
-                    // The value that we have been given is wider than the image
-                    h = r.height;
-                    y = 0;
-                    this.value = upload.resizedHeight;
-                } 
-                var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
-                    thumbWidth: w,
-                    thumbHeight: h,
-                    y: y
-                }).positionData;
-                // Now that we have resized, reposition the translucent background
-                positionRBG(npd);
-                elem('AJSSAR').value = getLowestFraction(w/h);
-            };
+            if (ajssh) {
+                ajssh.onchange = function () {
+                    var v = this.value,
+                    r = elem('AJSResImg').getBoundingClientRect(),
+                    pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
+                    upload = T[uploads][T[currentupload]],
+                    y = false;
+                    if (v && v.match(/\%/)) {
+                        v = r.height * (v.replace('%','')/100);
+                    } else {
+                        v = Number(v);
+                    }
+                    if (!v) {
+                        // We were given something dodgy, return.
+                        return;
+                    }
+                    var scale = upload.resizedHeight / r.height,
+                    h = Math.round(v / scale),
+                    w = pd.x2 - pd.x;
+                    if (h + pd.y > r.height) {
+                        h = r.height - h;
+                    } 
+                    if (h > r.height) {
+                        // The value that we have been given is wider than the image
+                        h = r.height;
+                        y = 0;
+                        this.value = upload.resizedHeight;
+                    } 
+                    var npd = $('#AJSRITrack').streamBoundaries('updateOpts', {
+                        thumbWidth: w,
+                        thumbHeight: h,
+                        y: y
+                    }).positionData;
+                    // Now that we have resized, reposition the translucent background
+                    positionRBG(npd);
+                    elem('AJSSAR').value = getLowestFraction(w/h);
+                };
+            }
             
             $('.AJSEIcon').unbind('click', T.iconClick).click(T.iconClick);
             
@@ -1068,11 +1136,11 @@
                 inner;
                 if (isimg) {
                     var style;
-                    if (curobj.croppedWidth > curobj.croppedHeight) {
-                        var ar = curobj.croppedWidth / curobj.croppedHeight,
-                        h = iconWidth / ar;
+                    if (curobj.croppedWidth < curobj.croppedHeight) {
                         style = 'height: 100%;';
                     } else {
+                        var ar = curobj.croppedWidth / curobj.croppedHeight,
+                        h = iconWidth / ar;
                         style = 'width:100%;margin-top:' + ((iconHeight - h) / 2) + ';';
                     }
                     inner = cHE.getHtml('img', null, null, null, {
@@ -1105,11 +1173,12 @@
             // Auto executing
             var parent = T.parent();
             T.addClass(AJSHidden);
-            if (exists($('#AJS_' + T.id))) {
-                var val = $('#AJS_' + T.id).val();
-                T[uploads] = val[length] ? json_decode(val, !0) : [];
+            if (exists($('#AJS_' + T[0].id))) {
+                var val = $('#AJS_' + T[0].id).val();
+                T.uploads = val.length ? json_decode(val, !0) : [];
+                T.currentlength = T.uploads.length;
             } else {
-                parent.append(cHE.getInput('AJS_' + T.id, null, null, 'hidden'));
+                parent.append(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden'));
             }
             
             if (T.s.showPreviewOnForm) {
@@ -1150,6 +1219,31 @@
         count++;
         return T;
     };  
+    
+    /**
+     * Calculate a new width and height for the uploaded file is one of the axis exceeds the maximum allowed
+     * @param {float} width The current width of the image
+     * @param {float} height The current height of the image
+     * @param {float} maxWidth The maximum width allowed
+     * @param {float} maxHeight The maximum height allowed
+     * @returns {object(plain)} An object in the form {width: float(width), height: float(height)}
+     */
+    function calcWidthHeight(width, height, maxWidth, maxHeight) {
+        if (width > height) {
+            if (width > maxWidth) {
+                //height *= max_width / width;
+                height = Math.round(height *= maxWidth / width);
+                width = maxWidth;
+            }
+        } else {
+            if (height > maxHeight) {
+                //width *= max_height / height;
+                width = Math.round(width *= maxHeight / height);
+                height = maxHeight;
+            }
+        }
+        return {width: width, height: height};
+    }
     
     /**
      * Position the four divs that surround crop grid so that it looks like everything outside the middle of the grid is blacked out
@@ -1248,7 +1342,7 @@
             cHE.getDiv(
                 cHE.getSpan(null, 'AJSAdd', 'asicons-plus', {title: tx('Add another file')}) +
                 cHE.getSpan(null, 'AJSChange', 'asicons-docs', {title: tx('Change file')}) +
-                cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) +
+                (canv ? cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) : '') +
                 cHE.getSpan(null, 'AJSRemove', 'asicons-trash', {title: tx('Remove file')}) +
                 cHE.getSpan(null, 'AJSClose', 'asicons-cross', {title: tx('Close window')})), 
         'AJSPreviewActions');
