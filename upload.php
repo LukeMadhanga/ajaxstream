@@ -69,6 +69,21 @@ class cAjaxStream {
             self::handleLegacy($file);
         }
     }
+    
+    /**
+     * Save a base64 encoded string as a file
+     * @param string $destination The destination of the upload
+     * @param string $base64 The base64 representation of the uploaded file
+     * @return int The number of bytes written, or false on failure 
+     */
+    static function saveBase64($destination, $base64) {
+        $src = $base64;
+        if (preg_match("/^data\:/", $src)) {
+            // Remove the first part of the string to exlude everything upto ';base64,'
+            $src = preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$1", $base64);
+        }
+        return file_put_contents($destination, $src);
+    }
 
     /**
      * Upload a file using legacy methods

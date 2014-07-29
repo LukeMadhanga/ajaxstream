@@ -12,15 +12,11 @@ echo <<<'HTML'
         <style>
             body {margin: 0;font-family: sans-serif;}
             #holder {margin: auto;}
-            #holder > h2 {font-size: 50;margin-bottom: 10px;text-align: center;}
+            #holder > h2 {font-size: 50px;margin-bottom: 10px;text-align: center;}
             #file {margin: 25px 70px;}
         </style>
         <script type='text/javascript'>
-            $.ajaxStream.setDefaults({useViewport:true,loadRequiredFiles:true,showPreviewOnForm: !0});
-            $.ajaxStream.customFields = [
-                {name: 'Caption', type:$.ajaxStream.const['CF_TEXT'], value: null},
-                {name: 'Credit', type:$.ajaxStream.const['CF_TEXT'], value: null}
-            ];
+            $.ajaxStream.setDefaults({showPreviewOnForm: !0});
             $(function (){$('#file').ajaxStream({maxFiles:2});$('#second').ajaxStream({maxFiles:2,accept:['image/*']});});
         </script>
     </head>

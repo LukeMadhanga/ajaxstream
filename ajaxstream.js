@@ -24,6 +24,7 @@
         iconPreviewHeight: 200,
         maxHeight: 1024,
         maxWidth: 1024,
+        onclose: ef,
         onfilechanging: ef,
         onfilechanged: ef,
         onfileselected: ef,
@@ -314,7 +315,7 @@
                 var gotoend = T[changing] === !1;
                 if (T[changing] === !1) {
                     // Call the filechanged event
-                    T.event('filechanged', target, {original:T, new: T[uploads][index], old: old});
+                    T.event('filechanged', target, {original:T, newfile: T[uploads][index], oldfile: old});
                 }
                 T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T[uploads]});
                 T[changing] = !1;
@@ -397,7 +398,7 @@
                     canvas[0].src = src;
                 } else {
                     eicon.addClass(AJSHidden);
-                    canvas.attr({class: 'AJSMIMEIcons ' + getIconClass(mastermime, cur.mimetype)});
+                    canvas.attr({'class': 'AJSMIMEIcons ' + getIconClass(mastermime, cur.mimetype)});
                     canvas.find('span').html(cur.name);
                 }
             }
@@ -965,6 +966,8 @@
                     $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
                     $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
                 }
+                // Call the onclose event handler
+                T.event('close', T, {original: T, uploads: T.uploads, length: T.uploads.length});
             });
             
             $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
@@ -1141,7 +1144,7 @@
                     } else {
                         var ar = curobj.croppedWidth / curobj.croppedHeight,
                         h = iconWidth / ar;
-                        style = 'width:100%;margin-top:' + ((iconHeight - h) / 2) + ';';
+                        style = 'width:100%;margin-top:' + ((iconHeight - h) / 2) + 'px;';
                     }
                     inner = cHE.getHtml('img', null, null, null, {
                         src: curobj.base64, 
@@ -1157,11 +1160,14 @@
                     style: 'width:' + iconWidth + 'px;height:' + iconHeight + 'px;'
                 });
             }
-            if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles) {
+            if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles && T.uploads.length) {
                 // Only show the plus if we can add more
                 outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {
                     style: 'height:' + iconHeight + 'px;line-height:' + iconHeight + 'px;'
                 });
+            }
+            if (!T.uploads.length) {
+                outtext += cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {'data-mandatory': !0});
             }
             return outtext;
         }
@@ -1500,6 +1506,10 @@
      * @returns {boolean} True if parameter two is an object of type paremeter one
      */
     function is_a(type, variable) {
+        if (variable === undefined) {
+            // Undefined is an object in IE8
+            return false;
+        }
         var otype = type.substr(0,1).toUpperCase() + type.substr(1).toLowerCase();
         return Object.prototype.toString.call(variable) === '[object ' + otype + ']';
     }
@@ -1563,7 +1573,7 @@
      */
     window.ZZ = $.ajaxStream = {
         author: 'Luke Madhanga',
-        const: {
+        consts: {
             CF_TEXT: 1
         },
         customFields: [],
