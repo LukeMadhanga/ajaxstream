@@ -136,16 +136,18 @@ class cAjaxStream {
                     }
                 }
                 $resultsarray = array(
-                    'location' => $filepath,
-                    'moved' => $moved,
                     'error' => $error,
+                    'id' => self::$settings->id,
+                    'location' => $filepath,
                     'mimetype' => $file->type,
-                    'id' => self::$settings->id
+                    'moved' => $moved,
+                    'name' => $file->name,
+                    'size' => $file->size
                 );
                 if($dimensions) {
                     // Add the image data to output
-                    $resultsarray['width'] = $dimensions->width;
                     $resultsarray['height'] = $dimensions->height;
+                    $resultsarray['width'] = $dimensions->width;
                 }
                 $result = json_encode($resultsarray);
             } catch(Exception $ex) {

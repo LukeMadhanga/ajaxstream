@@ -52,7 +52,7 @@
             }
             return s;
         },
-        uploadScript: "upload.php",
+        uploadScript: "/upload.php",
         uploadTo: "uploads",
         uploadWithForm: !1,
         verbose: !1
@@ -91,7 +91,7 @@
         T[uploads] = [];
         T.addingmore = !1;
         T.s = $.extend($.extend({}, defaults), opts);
-
+        
         /**
          * @brief Translate a string using the supplied translation function
          * @syntax tx(s [, arg1, arg2, ...])
@@ -124,20 +124,19 @@
          * @param {object(DOMElement)} input The input that has the file being uploaded
          */
         T.legacyUpload = function(input) {
-            var file = input.files[0],
-            index = T[changing] === !1 ? T[uploads][length] : T[changing];
+            var index = T[changing] === !1 ? T[uploads][length] : T[changing];
             T.filedata = {
                 base64 :null,
                 croppedWidth: null,
                 croppedHeight: null,
                 index: index,
                 islegacy: !0,
-                mimetype: file.type,
-                name: file[name],
+                mimetype: null,
+                name: null,
                 newupload: !0,
                 resizedWidth: null,
                 resizedHeight: null,
-                size: file.size
+                size: null
             };
             // Make a global reference to 'T' so that we can call it from our iFrame
             win['AJSLegacy'] = ZZ.streams[T.id];
@@ -149,9 +148,14 @@
                 islegacy: !0,
                 id: T.id
             }));
-            $('#AJSLegacyForm')[prop]({action: T.s.uploadScript});
-            T.event('legacyuploadstart', input, {original: T, file:file});
-            $('#AJSLegacyForm').submit();
+            var leg = $('#AJSFileLegacy'),
+            orig = leg.clone();
+            orig.insertAfter(leg);
+            leg[0].id = null;
+            $('#AJSLegacyForm').prop({action: T.s.uploadScript}).append(leg);
+            orig.unbind('change', T.filechanged).change(T.filechanged);
+            T.event('legacyuploadstart', input, {original: T});
+            elem('AJSLegacyForm').submit();
             $('#AJSLoading').removeClass(AJSHidden);
         };
 
@@ -160,6 +164,7 @@
          * @param {object(plain)} results The results from our upload
          */
         T.afterLegacyUpload = function(results) {
+            $('input[name=AJSFileLegacy]', '#AJSLegacyForm').remove();
             $('#AJSLoading').addClass(AJSHidden);
             if (results.moved) {
                 // The file was successfully uploaded, so we can continue
@@ -169,6 +174,10 @@
                 }
                 T.currentlength++;
                 T.filedata.base64 = results.location;
+                T.filedata.src = results.location;
+                T.filedata.name = results.name;
+                T.filedata.size = results.size;
+                T.filedata.mimetype = results.mimetype;
                 T.filedata.src = results.location;
                 T.event('legacyuploadfinish', null, {original: T, results:results});
                 T.afterFileRead(T.filedata, T[changing] !== !1);
@@ -186,8 +195,13 @@
          */
         T.filechanged = function (e) {
             var filelist = e.target.files;
-            if (!filelist[length]) {
-                T[changing] = !1;
+            if (!filelist && e.target.value.match(/^.\:\\/)) {
+                // This is an old version of IE. Value starts in the form C:\
+                T.legacyUpload(this);
+                T.toload = 1;
+                return;
+            } else if (!filelist.length) {
+                T.changing = !1;
                 return;
             }
             T.toload = filelist[length];
@@ -799,11 +813,14 @@
                 $(this)[attr](fa);
             });
             
-            $('#AJSChooseText').unbind('click').click(function (){
-                T.addingmore = !0;
-                T.changing = !1;
-                ajsfile.click();
-            });
+            if (fapi) {
+                // IE doesn't support simulated clicks on input:files
+                $('#AJSChooseText').unbind('click').click(function (){
+                    T.addingmore = !0;
+                    T.changing = !1;
+                    ajsfile.click();
+                });
+            }
             
             if (pastable) {
                 // We support paste functionality
@@ -1140,11 +1157,11 @@
                 if (isimg) {
                     var style;
                     if (curobj.croppedWidth < curobj.croppedHeight) {
-                        style = 'height: 100%;';
+                        style = 'height: 100%;width: auto;';
                     } else {
                         var ar = curobj.croppedWidth / curobj.croppedHeight,
                         h = iconWidth / ar;
-                        style = 'width:100%;margin-top:' + ((iconHeight - h) / 2) + 'px;';
+                        style = 'width: 100%;height: auto;margin-top:' + ((iconHeight - h) / 2) + 'px;';
                     }
                     inner = cHE.getHtml('img', null, null, null, {
                         src: curobj.base64, 
@@ -1160,7 +1177,8 @@
                     style: 'width:' + iconWidth + 'px;height:' + iconHeight + 'px;'
                 });
             }
-            if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles && T.uploads.length) {
+            if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles && T.uploads.length && fapi) {
+                // For v2, Allow non fapi browsers to add more than one file
                 // Only show the plus if we can add more
                 outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {
                     style: 'height:' + iconHeight + 'px;line-height:' + iconHeight + 'px;'
@@ -1271,12 +1289,14 @@
             var formsettings = {
                 method: 'post',
                 enctype: 'multipart/form-data',
-                target: 'AJSIFrame'
+                target: 'AJSIFrame',
+                name: 'AJSLegacyForm',
+                'action': '/upload.php'
             };
             $('body').append(
                     cHE.getHtml('form', 
                         cHE.getInput('AJSLegacy', null, null, 'hidden') + 
-                        cHE.getInput('AJSFileLegacy', null, null, 'file'), 'AJSLegacyForm', AJSHidden, formsettings) +
+                        cHE.getInput(null, 'submit', null, 'submit'), 'AJSLegacyForm', AJSHidden, formsettings) +
                     cHE.getHtml('iframe', null, 'AJSIFrame', AJSHidden, {name: 'AJSIFrame'})
             );
         }
@@ -1346,8 +1366,8 @@
         return cHE.getDiv(
             cHE.getDiv(null, 'AJSActionsOverlay') +    
             cHE.getDiv(
-                cHE.getSpan(null, 'AJSAdd', 'asicons-plus', {title: tx('Add another file')}) +
-                cHE.getSpan(null, 'AJSChange', 'asicons-docs', {title: tx('Change file')}) +
+                (fapi ? cHE.getSpan(null, 'AJSAdd', 'asicons-plus', {title: tx('Add another file')}) : '') +
+                (fapi ? cHE.getSpan(null, 'AJSChange', 'asicons-docs', {title: tx('Change file')}) : '') +
                 (canv ? cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) : '') +
                 cHE.getSpan(null, 'AJSRemove', 'asicons-trash', {title: tx('Remove file')}) +
                 cHE.getSpan(null, 'AJSClose', 'asicons-cross', {title: tx('Close window')})), 
@@ -1419,7 +1439,8 @@
      */
     function drawUploader() {
         var choosefile = 
-                cHE.getSpan(tx('Choose file'), 'AJSChooseText', 'AJSBtnD') + 
+                cHE.getSpan(tx('Choose file') + (fapi ? '' : ' ' + 
+                                    cHE.getInput('AJSFileLegacy', null, null, 'file')), 'AJSChooseText', 'AJSBtnD') + 
                 (pastable ? cHE.getSpan(getPasteText(), 'AJSPasteText', 'AJSBtnD AJSBtnDU') : '') + 
                 (draggable ? cHE.getSpan(tx('Drop'), 'AJSDropText', 'AJSBtnD AJSBtnDU') : '') + 
                 cHE.getSpan(null, 'AJSCloseText', 'AJSBtnD asicons-cross');
