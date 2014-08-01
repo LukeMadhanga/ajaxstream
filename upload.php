@@ -1,6 +1,9 @@
 <?php
 
-cAjaxStream::processUpload();
+$doupload = filter_input(INPUT_GET, 'newupload');
+if ($doupload) {
+    cAjaxStream::processUpload();
+}
 
 class cAjaxStream {
 
@@ -80,9 +83,63 @@ class cAjaxStream {
         $src = $base64;
         if (preg_match("/^data\:/", $src)) {
             // Remove the first part of the string to exlude everything upto ';base64,'
-            $src = preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$1", $base64);
+            $src = preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$2", $base64);
         }
-        return file_put_contents($destination, $src);
+        set_error_handler("cAjaxStream::FSE");
+        $ans = file_put_contents($destination, base64_decode($src));
+        restore_error_handler();
+        if (!(fileperms($destination) & 0020)) {
+            if (!chmod($destination, 0777)) {
+                throw new Exception('Failed to change permissions on ' . $destination);
+            }
+        }
+        return $ans;
+    }
+    
+    /**
+     * File System Error handler
+     * @throws Exception
+     */
+    static function FSE () {
+        restore_error_handler();
+        throw new Exception('Error attempting to write file');
+    }
+    
+    /**
+     * Stringify an array into something that JavaScript understands. Typing 'function:' before a string causes that string to not
+     *  be encased in quotes, meaning that JS can understand that it is a function
+     * @param array $input The array to turn into a JS object
+     * @return string A JSON-like string
+     */
+    static function json_stringify($input) {
+        $outtext = '';
+        $opening = '{';
+        $closing = '}';
+        $inner = array();
+        $numericarray = array_keys($input) === range(0, count($input) - 1);
+        if ($numericarray) {
+            // This is a numerically sequential array
+            $opening = '[';
+            $closing = ']';
+        } 
+        foreach ($input as $key => $val) {
+            if (is_string($val) && preg_match("/^function\:/", $val)) {
+                // The value is a string and begins with 'function:'. Do not encase it in quotes
+                $val = substr($val, 9);
+            } else if (is_int($val)) {
+                // The value is an integer
+                $val = (int) $val;
+            } else if (is_float($val)) {
+                // The value is a float
+                $val = (float) $val;
+            } else if (!is_bool($val)) {
+                // Keep booleans as they are, and for everything else, come here
+                $val = is_array($val) ? self::json_stringify($val) : "\"$val\"";
+            }
+            $inner[] = ($numericarray ? '' : "\"$key\":") . $val;
+        }
+        $outtext .= implode(',',$inner);
+        return "$opening$outtext$closing";
     }
 
     /**

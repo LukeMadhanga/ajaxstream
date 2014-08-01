@@ -34,6 +34,7 @@
         onlegacyuploadfail: ef,
         onlegacyuploadfinish: ef,
         onlegacyuploadstart: ef,
+        onopen: ef,
         onsingleuploadfail: ef,
         onsingleuploadfinish: ef,
         onsingleuploadstart: ef,
@@ -41,7 +42,7 @@
         onuploadfinish: ef,
         onuploadprogress: ef,
         onuploadstart: ef,
-//            previewOrientation: root.const['PREVIEW_ORI_GRID'],
+        pathPrefix: '',
         quality: 1,
         resize: !0,
         showPreviewOnForm: !1,
@@ -52,7 +53,7 @@
             }
             return s;
         },
-        uploadScript: "/upload.php",
+        uploadScript: "/upload.php?newupload=true",
         uploadTo: "uploads",
         uploadWithForm: !1,
         verbose: !1
@@ -83,13 +84,14 @@
         changing = 'changing',
         currentlength = 'currentlength';
         T.c = count;
-        T[currentupload] = null;
-        T[currentlength] = 0;
-        T[changing] = !1;
+        T.currentupload = null;
+        T.currentlength = 0;
+        T.changing = !1;
         T.toload = 0;
         T.loaded = 0;
-        T[uploads] = [];
+        T.uploads = [];
         T.addingmore = !1;
+        T.existingedited = !1;
         T.s = $.extend($.extend({}, defaults), opts);
         
         /**
@@ -154,7 +156,7 @@
             leg[0].id = null;
             $('#AJSLegacyForm').prop({action: T.s.uploadScript}).append(leg);
             orig.unbind('change', T.filechanged).change(T.filechanged);
-            T.event('legacyuploadstart', input, {original: T});
+            T.event('legacyuploadstart', input, {original: T[0]});
             elem('AJSLegacyForm').submit();
             $('#AJSLoading').removeClass(AJSHidden);
         };
@@ -179,12 +181,12 @@
                 T.filedata.size = results.size;
                 T.filedata.mimetype = results.mimetype;
                 T.filedata.src = results.location;
-                T.event('legacyuploadfinish', null, {original: T, results:results});
+                T.event('legacyuploadfinish', T, {original: T[0], results:results, uploads: T.uploads});
                 T.afterFileRead(T.filedata, T[changing] !== !1);
                 win['AJSLegacy'] = null;
             } else {
                 // There was an error so alert the user
-                T.event('legacyuploadfail', null, {original: T, error:results.error, results: results});
+                T.event('legacyuploadfail', null, {original: T, error:results.error, results: results, uploads: T.uploads});
                 streamConfirm(tx('Error'), {Close: ef}, results.error, {nocancel: !0});
             }
         };
@@ -205,7 +207,7 @@
                 return;
             }
             T.toload = filelist[length];
-            T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T});
+            T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T, uploads: T.uploads});
             if (fapi) {
                 // We support the file api
                 if (T[changing] === !1) {
@@ -223,7 +225,8 @@
                         T.process(filelist[i], i);
                     }
                 } else {
-                    T.event('filechanging', this, {originalEvent: e, file:filelist[0], current:T[uploads][T[changing]], original:T});
+                    T.event('filechanging', this, {
+                        originalEvent: e, file:filelist[0], current:T[uploads][T[changing]], original:T, uploads: T.uploads});
                     T.process(filelist[0], T[changing], !0, this);
                 }
             } else {
@@ -320,7 +323,7 @@
          */
         T.attemptProgression = function (target, index, old) {
             T.loaded++;
-            T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded});
+            T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded, uploads: T.uploads});
             if (T.loaded === T.toload) {
                 $('#AJSLoading').addClass(AJSHidden);
                 $('#AJSUploadSection').addClass(AJSHidden);
@@ -329,7 +332,7 @@
                 var gotoend = T[changing] === !1;
                 if (T[changing] === !1) {
                     // Call the filechanged event
-                    T.event('filechanged', target, {original:T, newfile: T[uploads][index], oldfile: old});
+                    T.event('filechanged', target, {original:T, newfile: T[uploads][index], oldfile: old, uploads: T.uploads});
                 }
                 T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T[uploads]});
                 T[changing] = !1;
@@ -473,7 +476,10 @@
             cur.resizedHeight = canvas.height = height;
             var ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, width, height);
-            cur.base64 = canvas.toDataURL("image/jpeg", T.s.quality);
+            if (cur.newupload || T.existingedited) {
+                // Only recalculate the base64 if something has happened to the file
+                cur.base64 = canvas.toDataURL("image/jpeg", T.s.quality);
+            }
         }
         
         
@@ -751,7 +757,11 @@
             key = 'AJSIMG_' + T.id + T[currentupload],
             t = $('#' + key);
             T.getCropped64(elem(key), upload, ZZ.images[key], data);
-            upload.cropdata = {x: data.x, x2: data.x2, y: data.y, y2: data.y2};
+            var ncropdata = {x: data.x, x2: data.x2, y: data.y, y2: data.y2};
+            if (upload.cropdata !== ncropdata) {
+                T.existingedited = !0;
+            }
+            upload.cropdata = ncropdata;
             $('#AJSMain > div').addClass(AJSHidden);
             $('#AJSImagePreview').removeClass(AJSHidden);
             $('#AJS').css({minWidth: 'initial'});
@@ -772,6 +782,8 @@
             $ajs.show();
             $ajs.css({marginTop: -($ajs.height()/2), marginLeft: -($ajs.width()/2)});
             T[uploads][length] ? T.displayUpload() : T.resetToUpload();
+            // Call the 'onopen' handler
+            T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
         }
         
         /**
@@ -984,7 +996,7 @@
                     $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
                 }
                 // Call the onclose event handler
-                T.event('close', T, {original: T, uploads: T.uploads, length: T.uploads.length});
+                T.event('close', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
             });
             
             $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
@@ -1201,6 +1213,19 @@
                 var val = $('#AJS_' + T[0].id).val();
                 T.uploads = val.length ? json_decode(val, !0) : [];
                 T.currentlength = T.uploads.length;
+                for (var i = 0; i < T.currentlength; i++) {
+                    var u = T.uploads[i];
+                    if (!u.cropdata) {
+                        // If we haven't got crop data, create an object in its place
+                        u.cropdata = {};
+                    }
+                    if (u.mimetype.match('image/*')) {
+                        // Add images to the images cache
+                        var img = new Image();
+                        img.src = u.src;
+                        ZZ.images[AJS + 'IMG_' + T.id + i] = img;
+                    }
+                }
             } else {
                 parent.append(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden'));
             }
@@ -1215,7 +1240,7 @@
             }
             if (!exists($(hAJS))) {
                 // Only create an ajaxStreamMain if one does not already exist in the DOM
-                body.append(cHE.getDiv(drawMainDialogue(T.s), AJS));
+                body.append(cHE.getDiv(drawMainDialogue(T.s.pathPrefix), AJS));
                 if (fapi) {
                     $('#AJSImagePreview').after(drawInfoBay());
                 } else {
@@ -1235,7 +1260,7 @@
                 });
             }
             T.initBinding();
-            T.event('init', T, {original: T[0]});
+            T.event('init', T, {original: T[0], uploads: T.uploads});
         }();
         
         // Cache this object for later use
@@ -1334,13 +1359,14 @@
     /**
      * Draw the main AjaxStream dialogue
      * @syntax drawMainDialogue();
+     * @param {string} pathprefix The path prefix to the ajaxstream files directory without the trailing slash
      * @returns {html}
      */
-    function drawMainDialogue() {
+    function drawMainDialogue(pathprefix) {
         var top = drawImagePreview() +
         drawUploader();
         return cHE.getDiv(null, 'AJSMainOverlay') + cHE.getDiv(top + cHE.getHtml('img', null, 'AJSLoading', AJSHidden, {
-            src: 'files/loader.gif', 
+            src: pathprefix + '/files/loader.gif', 
             title: tx('Files are loading')
         }), 'AJSMain');
     }
