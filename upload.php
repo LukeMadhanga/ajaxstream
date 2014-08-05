@@ -80,13 +80,8 @@ class cAjaxStream {
      * @return int The number of bytes written, or false on failure 
      */
     static function saveBase64($destination, $base64) {
-        $src = $base64;
-        if (preg_match("/^data\:/", $src)) {
-            // Remove the first part of the string to exlude everything upto ';base64,'
-            $src = preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$2", $base64);
-        }
         set_error_handler("cAjaxStream::FSE");
-        $ans = file_put_contents($destination, base64_decode($src));
+        $ans = file_put_contents($destination, self::getFileBinary($base64));
         restore_error_handler();
         if (!(fileperms($destination) & 0020)) {
             if (!chmod($destination, 0777)) {
@@ -94,6 +89,22 @@ class cAjaxStream {
             }
         }
         return $ans;
+    }
+    
+    /**
+     * Get a binary string from a file
+     * @param string(base64|path) $src The source of the file: either a relative path to the file on this server, or a base64 string
+     *  with the leading 'data:major/minor;base64,'
+     * @return string(binary)
+     */
+    static function getFileBinary($src) {
+        if (preg_match("/^data\:/", $src)) {
+            // Remove the first part of the string to exlude everything upto ';base64,'
+            $binary = base64_decode(preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$2", $src));
+        } else {
+            $binary = file_get_contents($src);
+        }
+        return $binary;
     }
     
     /**
@@ -390,7 +401,7 @@ JS;
                 $target = self::imageScale($image, $maxwidth, $maxheight, $square);
                 if(!imagepng($target, $fnameto)) {
                     throw new Exception('Failed to write image file: ' . $fnameto);
-                };
+                }
                 break;
             case IMAGETYPE_JPEG:
                 $image = imagecreatefromjpeg($fnamefrom);
