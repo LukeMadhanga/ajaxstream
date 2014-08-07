@@ -48,9 +48,9 @@
         resize: !0,
         showPreviewOnForm: !1,
         translateFunction: function(s) {
-            for (var i = 1; i < arguments[length]; i++) {
+            for (var i = 1; i < arguments.length; i++) {
                 var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
-                s = s[replace](re, arguments[i]);
+                s = s.replace(re, arguments[i]);
             }
             return s;
         },
@@ -66,13 +66,13 @@
              * @type @this;
              */
             var T = this;
-            if (T[length] > 1) {
+            if (T.length > 1) {
                 // If the length is more than one, apply this function to all objects
                 T.each(function() {
                     $(this).ajaxStream(opts);
                 });
                 return T;
-            } else if (!T[length]) {
+            } else if (!T.length) {
                 // We have no objects return
                 return T;
             }
@@ -127,7 +127,7 @@
              * @param {object(DOMElement)} input The input that has the file being uploaded
              */
             T.legacyUpload = function(input) {
-                var index = T[changing] === !1 ? T[uploads][length] : T[changing];
+                var index = T[changing] === !1 ? T.uploads.length : T[changing];
                 T.filedata = {
                     base64: null,
                     croppedWidth: null,
@@ -207,27 +207,41 @@
                     T.changing = !1;
                     return;
                 }
-                T.toload = filelist[length];
+                T.toload = filelist.length;
                 T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T, uploads: T.uploads});
                 if (fapi) {
+                    for (var i = 0; i < len; i++) {
+                        if (!filelist[i]) {
+                            T.toload--;
+                            
+                        }
+                    }
+                    if (T.toload <= 0) {
+                        streamConfirm(tx('Error'), {Close: ef},
+                            tx('There was an error during the upload: the file list is empty', tlen, T.s.maxFiles),
+                                {nocancel: !0});
+                    }
                     // We support the file api
-                    if (T[changing] === !1) {
+                    if (T.changing === !1) {
                         // This is a new file
-                        var len = filelist[length],
-                        tlen = len + T[uploads][length];
+                        var len = T.toload,
+                        tlen = len + T.uploads.length;
                         if (tlen > T.s.maxFiles) {
                             streamConfirm(tx('Maximum files exceeded'), {Close: ef},
                             tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles),
                                     {nocancel: !0});
-                            len = T.toload = T.s.maxFiles - T[uploads][length];
+                            len = T.toload = T.s.maxFiles - T.uploads.length;
                         }
                         for (var i = 0; i < len; i++) {
                             // Process each file on its own
+                            if (!filelist[i]) {
+                                continue;
+                            }
                             T.process(filelist[i], i);
                         }
                     } else {
                         T.event('filechanging', this, {
-                            originalEvent: e, file: filelist[0], current: T[uploads][T[changing]], original: T, uploads: T.uploads});
+                            originalEvent: e, file: filelist[0], current: T.uploads[T[changing]], original: T, uploads: T.uploads});
                         T.process(filelist[0], T[changing], !0, this);
                     }
                 } else {
@@ -247,7 +261,7 @@
                 $('#AJSLoading').removeClass(AJSHidden);
                 if (is_a('blob', file) || is_a('file', file)) {
                     var fr = new FileReader(),
-                            isimg = file.type.match('image/*');
+                    isimg = file.type.match('image/*');
                     fr.onload = function(e) {
                         var blob = new Blob([e.target.result], {type: file.type}),
                         dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
@@ -308,10 +322,10 @@
             T.afterFileRead = function(filedata, changing, target) {
                 var current = null;
                 if (changing) {
-                    current = T[uploads][filedata.index];
-                    T[uploads][filedata.index] = filedata;
+                    current = T.uploads[filedata.index];
+                    T.uploads[filedata.index] = filedata;
                 } else {
-                    T[uploads][filedata.index] ? T[uploads][filedata.index] = filedata : T[uploads].push(filedata);
+                    T.uploads[filedata.index] ? T.uploads[filedata.index] = filedata : T.uploads.push(filedata);
                 }
                 T.attemptProgression(target, filedata.index, current);
             };
@@ -333,9 +347,9 @@
                     var gotoend = T[changing] === !1;
                     if (T[changing] === !1) {
                         // Call the filechanged event
-                        T.event('filechanged', target, {original: T, newfile: T[uploads][index], oldfile: old, uploads: T.uploads});
+                        T.event('filechanged', target, {original: T, newfile: T.uploads[index], oldfile: old, uploads: T.uploads});
                     }
-                    T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T[uploads]});
+                    T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T.uploads});
                     T[changing] = !1;
                     T.toload = T.loaded = 0;
                     T.displayUpload(null, gotoend);
@@ -346,7 +360,7 @@
              * Determine whether or not we should show the navigation arrows
              */
             T.toggleLR = function() {
-                if (T[uploads][length] > 1) {
+                if (T.uploads.length > 1) {
                     $('#AJSLRContainer').removeClass(AJSHidden);
                 } else {
                     $('#AJSLRContainer').addClass(AJSHidden);
@@ -359,7 +373,7 @@
              * @param {boolean} gotoend
              */
             T.displayUpload = function(cur, gotoend) {
-                if (T[uploads][length]) {
+                if (T.uploads.length) {
                     // If we have uploaded files, show them
                     if (!cur) {
                         cur = T.getCurr(gotoend);
@@ -387,7 +401,7 @@
                 docanvas = fapi && canv && isimg,
                 canvas = $('#' + hid),
                 eicon = $('#AJSEdit');
-                if (canvas[length]) {
+                if (canvas.length) {
                     // We may have changed from a non image to an image, vice versa. Get the correct element
                     canvas = getCorrectElement(canvas, hid, isimg, docanvas);
                 } else {
@@ -584,7 +598,7 @@
                 $('#AJSImagePreview').addClass(AJSHidden);
                 $('#AJSChooseText').removeClass(AJSHidden);
                 $('#AJSLoading').addClass(AJSHidden);
-                T[uploads][length] ? lr.removeClass(AJSHidden) : lr.addClass(AJSHidden);
+                T.uploads.length ? lr.removeClass(AJSHidden) : lr.addClass(AJSHidden);
             };
 
             /**
@@ -594,19 +608,19 @@
              */
             T.getCurr = function(gotoend) {
                 if (gotoend) {
-                    T[currentupload] = T[uploads][length] - 1;
-                    return end(T[uploads]);
+                    T[currentupload] = T.uploads.length - 1;
+                    return end(T.uploads);
                 } else {
                     if (T.addingmore) {
-                        var res = end(T[uploads]);
+                        var res = end(T.uploads);
                         T[currentupload] = res.index;
                         return res;
                     } else {
                         if (T[currentupload] || T[currentupload] === 0) {
-                            return T[uploads][T[currentupload]];
+                            return T.uploads[T[currentupload]];
                         }
                         T[currentupload] = 0;
-                        return reset(T[uploads]);
+                        return reset(T.uploads);
                     }
                 }
             };
@@ -620,12 +634,12 @@
                 var cur;
                 if (T[currentupload] + addition < 0) {
                     cur = end(T.uploads);
-                    T[currentupload] = T[uploads][length] - 1;
-                } else if (T[currentupload] + addition > (T[uploads][length] - 1)) {
-                    cur = reset(T[uploads]);
+                    T[currentupload] = T.uploads.length - 1;
+                } else if (T[currentupload] + addition > (T.uploads.length - 1)) {
+                    cur = reset(T.uploads);
                     T[currentupload] = 0;
                 } else {
-                    cur = T[uploads][T[currentupload] + addition];
+                    cur = T.uploads[T[currentupload] + addition];
                     T[currentupload] += addition;
                 }
                 T.displayUpload(cur);
@@ -641,7 +655,7 @@
 //            if ($('.EIconActive').data('for') === 'AJSWHAR' && t.data('for') !== 'AJSWHAR') {
 //                // If we haven't clicked ourself and we're moving from the crop screen
 //                var pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-//                upload = T[uploads][T[currentupload]];
+//                upload = T.uploads[T[currentupload]];
 //                T.getCropped64(document.createElement('canvas'), upload, ZZ.images['AJSIMG_' + T.id + T[currentupload]], pd);
 //                elem('AJSResImg').src = upload.base64;
 //                $('#AJSRITrack,[id^=AJSCrop]').addClass(AJSHidden);
@@ -656,7 +670,7 @@
              * The click handler for when the 'resize canvas' icon is clicked
              */
             T.resizeIconClick = function() {
-                elem('AJSResImg').src = T[uploads][T[currentupload]].src;
+                elem('AJSResImg').src = T.uploads[T[currentupload]].src;
                 $('#AJSRITrack,[id^=AJSCrop]').removeClass(AJSHidden);
             };
 
@@ -695,7 +709,7 @@
              * Display the information for the current file
              */
             T.showInfo = function() {
-                var upload = T[uploads][T[currentupload]],
+                var upload = T.uploads[T[currentupload]],
                 cd = upload.cropdata,
                 ri = elem('AJSResImg'),
                 ajsri = $('#AJSRInner'),
@@ -745,6 +759,12 @@
                 $ri.css({marginTop: mt}).attr({'data-top': mt, 'data-bottom': mt + h});
                 ajsritrack.css({marginTop: mt});
                 winResize();
+                if (draggable) {
+                    // If we have drag and drop support, remove
+                    document.body.ondragover = null;
+                    document.body.ondrop = null;
+                }
+                toggleDragPaste();
             };
 
             /**
@@ -752,7 +772,7 @@
              */
             T.saveInfo = function() {
                 // Save the customFields information
-                var upload = T[uploads][T[currentupload]],
+                var upload = T.uploads[T[currentupload]],
                 data = $('#AJSRITrack').streamBoundaries('getPositionData'),
                 key = 'AJSIMG_' + T.id + T[currentupload],
                 t = $('#' + key);
@@ -773,6 +793,7 @@
                 $('#AJS').css({minWidth: 'initial'});
                 t.css({top: (500 - t.height()) / 2});
                 winResize();
+                toggleDragPaste(true);
             };
 
             /**
@@ -792,7 +813,7 @@
                 var $ajs = $('#AJS');
                 $ajs.show();
                 $ajs.css({marginTop: -($ajs.height() / 2), marginLeft: -($ajs.width() / 2)});
-                T[uploads][length] ? T.displayUpload() : T.resetToUpload();
+                T.uploads.length ? T.displayUpload() : T.resetToUpload();
                 // Call the 'onopen' handler
                 T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
             }
@@ -829,8 +850,7 @@
 
                 // @todo Possibly go vanilla?
 
-                var ajsfile = fapi ? $('#AJSFile') : $('#AJSFileLegacy'),
-                ajs = elem(AJS);
+                var ajsfile = fapi ? $('#AJSFile') : $('#AJSFileLegacy');
 
                 ajsfile.unbind('click').click(function() {
                     var fa = {accept: T.s.accept};
@@ -850,59 +870,7 @@
                     });
                 }
 
-                if (pastable) {
-                    // We support paste functionality
-                    ajs.onpaste = function(e) {
-                        var clipboarditems = e.clipboardData.items,
-                        len = clipboarditems[length];
-                        T.toload = len;
-                        T.loaded = 0;
-                        var tlen = len + T[uploads][length];
-                        if (tlen > T.s.maxFiles) {
-                            streamConfirm(tx('Maximum files exceeded'), {Close: ef},
-                            tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles),
-                                    {nocancel: !0});
-                            len = T.toload = T.s.maxFiles - T[uploads][length];
-                        }
-                        for (var i = 0; i < len; i++) {
-                            var file = clipboarditems[i].getAsFile();
-                            if (file && file.size) {
-                                T.addingmore = !0;
-                                T.process(file, i);
-                            } else {
-                                streamConfirm(tx('Error'), {Close: ef},
-                                tx('There was an error processing the file you pasted'), {nocancel: !0});
-                            }
-                        }
-                    };
-                }
-
-                if (draggable) {
-                    // If we have drag and drop support, add the functionality
-                    document.body.ondragover = function(e) {
-                        if (e.target.id === 'AJSMainOverlay') {
-                            // Show that the place being hovered over is not the drop zone
-                            $('#AJSDropZone').addClass(AJSHidden);
-                        } else {
-                            // If the file is above the drop zone, prepare to accept it
-                            e.stopPropagation();
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'copy';
-                            $('#AJSDropZone').removeClass(AJSHidden);
-                        }
-                    };
-                    document.body.ondrop = function(e) {
-                        // Prevent an accidental drop outside the drop zone
-                        e.stopPropagation();
-                        e.preventDefault();
-                        if ($(e.target).closest('#AJS')[length]) {
-                            // Only accept drops inside the drop zone
-                            $('#AJSDropZone').addClass(AJSHidden);
-                            T.addingmore = !0;
-                            T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: e.dataTransfer.files}});
-                        }
-                    };
-                }
+                toggleDragPaste(true);
 
                 ajsfile.unbind(change)[change](T.filechanged);
 
@@ -917,7 +885,7 @@
 
                 $('#AJSAdd').unbind('click').click(function() {
                     // What to do when the add button is clicked
-                    if ((T[uploads][length] + 1) > T.s.maxFiles) {
+                    if ((T.uploads.length + 1) > T.s.maxFiles) {
 
                     } else {
                         ajsfile.click();
@@ -961,6 +929,7 @@
                         $('#AJS').css({minWidth: 'initial'});
                         t.css({top: (500 - t.height()) / 2});
                         winResize();
+                        toggleDragPaste();
                     };
                 }
 
@@ -974,8 +943,8 @@
                         var temp = [],
                         todelete = !1,
                         curupload = !1;
-                        for (var i = 0, len = T[uploads][length]; i < len; i++) {
-                            if (T[uploads][i] && i !== T[currentupload]) {
+                        for (var i = 0, len = T.uploads.length; i < len; i++) {
+                            if (T.uploads[i] && i !== T[currentupload]) {
                                 // We also need to reindex the uploaded file before saving
                                 var upload = T.uploads[i];
                                 upload.index = temp.length;
@@ -1004,7 +973,7 @@
 
                 $('#AJSClose,#AJSCloseText').unbind('click').click(function() {
                     // Close the upload screen
-                    $('#AJS_' + T[0].id).val(json_encode(T[uploads]));
+                    $('#AJS_' + T[0].id).val(json_encode(T.uploads));
                     $(hAJS).hide();
                     if (T.s.showPreviewOnForm) {
                         $('#AJSFormPrev_' + T.id).html(drawFormPreview());
@@ -1020,16 +989,16 @@
                 $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
 
                 if (ajssar) {
-                    ajssar.onchange = function() {
+                    ajssar.onkeypress = function() {
                         var ar,
                         v = this.value,
                         pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                        upload = T[uploads][T[currentupload]];
-                        if (v && v.match(/^\d+(:?\.\d+)?(:?\/|\:)\d+(:?\.\d+)?$/)) {
+                        upload = T.uploads[T[currentupload]];
+                        if (v && v.match(/^(:?\s+)?\d+(:?\.\d+)?(:?\/|\:)\d+(:?\.\d+)?$/)) {
                             // We've been given an aspect ratio in the form xx/yy or xx:yy
                             var input = v.split(/[\/|\:]/);
                             ar = input[0] / input[1];
-                        } else if (v && v.match(/^(:?\d+|\d+\.\d+)$/)) {
+                        } else if (v && v.match(/^(:?\s+)?(:?\d+|\d+\.\d+)$/)) {
                             // The aspect ratio is in the form of x or x.yyy
                             ar = Number(v);
                         } else {
@@ -1070,11 +1039,11 @@
                 }
 
                 if (ajssw) {
-                    ajssw.onchange = function() {
+                    ajssw.onkeypress = function() {
                         var v = this.value,
                         r = elem('AJSResImg').getBoundingClientRect(),
                         pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                        upload = T[uploads][T[currentupload]],
+                        upload = T.uploads[T[currentupload]],
                         x = false;
                         if (v && v.match(/\%/)) {
                             v = r.width * (v.replace('%', '') / 100);
@@ -1087,7 +1056,10 @@
                         }
                         var scale = upload.width / r.width,
                         w = Math.round(v / scale),
-                        h = pd.y2 - pd.y;
+                        h = pd.y2 - pd.y,
+                        calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight);
+                        w = calculated.width;
+                        h = calculated.height;
                         if (w + pd.x > r.width) {
                             x = r.width - w;
                         }
@@ -1104,16 +1076,18 @@
                         }).positionData;
                         // Now that we have resized, reposition the translucent background
                         positionRBG(npd);
+                        this.value = w;
+                        elem('AJSSH').value = h;
                         elem('AJSSAR').value = getLowestFraction(w / h);
                     };
                 }
 
                 if (ajssh) {
-                    ajssh.onchange = function() {
+                    ajssh.onkeypress = function() {
                         var v = this.value,
                         r = elem('AJSResImg').getBoundingClientRect(),
                         pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
-                        upload = T[uploads][T[currentupload]],
+                        upload = T.uploads[T[currentupload]],
                         y = false;
                         if (v && v.match(/\%/)) {
                             v = r.height * (v.replace('%', '') / 100);
@@ -1126,7 +1100,10 @@
                         }
                         var scale = upload.resizedHeight / r.height,
                         h = Math.round(v / scale),
-                        w = pd.x2 - pd.x;
+                        w = pd.x2 - pd.x,
+                        calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight);
+                        w = calculated.width;
+                        h = calculated.height;
                         if (h + pd.y > r.height) {
                             h = r.height - h;
                         }
@@ -1143,6 +1120,8 @@
                         }).positionData;
                         // Now that we have resized, reposition the translucent background
                         positionRBG(npd);
+                        this.value = h;
+                        elem('AJSSW').value = w;
                         elem('AJSSAR').value = getLowestFraction(w / h);
                     };
                 }
@@ -1164,6 +1143,118 @@
                 $('[id^=AJSUploadBtn_]').unbind('click', uploadBtnClick).click(uploadBtnClick);
                 $('.AJSFP').unbind('click', ajsfpClick).click(ajsfpClick);
             };
+            
+            /**
+             * Add or remove drag/drop functionality
+             * @param {boolean} add True to enable drag/drop functionality
+             */
+            function toggleDragPaste(add) {
+                if (draggable) {
+                    if (add) {
+                        // Add drag/drop functionality
+                        document.body.ondragover = dragOver;
+                        document.body.ondrop = dragDrop;
+                    } else {
+                        // Remove it
+                        document.body.ondragover =  null;
+                        document.body.ondrop = null;
+                    }
+                }
+                if (pastable) {
+                    var ajs = elem('AJS');
+                    if (add) {
+                        ajs.onpaste = paste;
+                    } else {
+                        ajs.onpaste = null;
+                    }
+                }
+            }
+            
+            /**
+             * Drag over event handler
+             * @param {object(MouseEvent)} e
+             */
+            function dragOver (e) {
+                var dt = e.dataTransfer;
+                if (dt.items && dt.items[0].kind !== 'file' || dt.types[3] !== 'Files') {
+                    // The thing we are hovering with IS NOT a file, return.
+                    return;
+                };
+                if (e.target.id === 'AJSMainOverlay') {
+                    // Show that the place being hovered over is not the drop zone
+                    $('#AJSDropZone').addClass(AJSHidden);
+                } else {
+                    // If the file is above the drop zone, prepare to accept it
+                    e.stopPropagation();
+                    e.preventDefault();
+                    dt.dropEffect = 'copy';
+                    $('#AJSDropZone').removeClass(AJSHidden);
+                }
+            }
+            
+            /**
+             * Drop event handler
+             * @param {object(MouseEvent)} e
+             */
+            function dragDrop (e) {
+                // Prevent an accidental drop outside the drop zone
+                e.stopPropagation();
+                e.preventDefault();
+                if ($(e.target).closest('#AJS').length) {
+                    // Only accept drops inside the drop zone
+                    var files = e.dataTransfer.files;
+                    for (var i = 0; i < files.length; i++) {
+                        if (!files[i].type.match(T.s.accept)) {
+                            files[i] = null;
+                        }
+                    }
+                    $('#AJSDropZone').addClass(AJSHidden);
+                    T.addingmore = !0;
+                    T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: files}});
+                }
+            }
+            
+            /**
+             * Paste event handler
+             * @param {object(Event)} e
+             */
+            function paste (e) {
+                var clipboarditems = e.clipboardData.items,
+                len = clipboarditems.length;
+                for (var i = 0; i < clipboarditems.length; i++) {
+                    if (!clipboarditems[i].type.match(T.s.accept)) {
+                        clipboarditems[i] = null;
+                        len--;
+                    }
+                }
+                if (!len) {
+                    return;
+                }
+                T.toload = len;
+                T.loaded = 0;
+                var tlen = len + T.uploads.length;
+                if (tlen > T.s.maxFiles) {
+                    streamConfirm(tx('Maximum files exceeded'), {Close: ef},
+                    tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles),
+                            {nocancel: !0});
+                    len = T.toload = T.s.maxFiles - T.uploads.length;
+                }
+                for (var i = 0; i < len; i++) {
+                    var ci = clipboarditems[i];
+                    if (!ci) {
+                        // We have removed this file from the list. Continue without it
+                        continue;
+                    }
+                    var file = ci.getAsFile();
+                    if (file && file.size) {
+                        T.addingmore = !0;
+                        T.process(file, i);
+                    } else {
+                        streamConfirm(tx('Error'), {Close: ef},
+                        tx('There was an error processing the file you pasted'), {nocancel: !0});
+                    }
+                }
+            }
 
             /**
              * The window resize handler
@@ -1467,7 +1558,7 @@
                         (fapi ? cHE.getSpan(null, 'AJSChange', 'asicons-docs', {title: tx('Change file')}) : '') +
                         (canv ? cHE.getSpan(null, 'AJSEdit', 'asicons-pencil', {title: tx('Edit')}) : '') +
                         cHE.getSpan(null, 'AJSRemove', 'asicons-trash', {title: tx('Remove file')}) +
-                        cHE.getSpan(null, 'AJSClose', 'asicons-cross', {title: tx('Close window')})),
+                        cHE.getSpan(null, 'AJSClose', 'asicons-checkmark', {title: tx('Close window')})),
                 'AJSPreviewActions');
     }
 
@@ -1535,12 +1626,13 @@
      * @returns {html}
      */
     function drawUploader() {
-        var choosefile =
+        var ptext = (pastable ? '<strong>' + getPasteText() + '</strong>' : ''),
+        dtext = (draggable ? (ptext ? ' ' + tx('or') + ' ' : '') + '<strong>' + tx('drop') + '</strong>' : ''),
+        choosefile =
                 cHE.getSpan(tx('Choose file') + (fapi ? '' : ' ' +
                         cHE.getInput('AJSFileLegacy', null, null, 'file')), 'AJSChooseText', 'AJSBtnD') +
-                (pastable ? cHE.getSpan(getPasteText(), 'AJSPasteText', 'AJSBtnD AJSBtnDU') : '') +
-                (draggable ? cHE.getSpan(tx('Drop'), 'AJSDropText', 'AJSBtnD AJSBtnDU') : '') +
-                cHE.getSpan(null, 'AJSCloseText', 'AJSBtnD asicons-cross');
+                cHE.getSpan(null, 'AJSCloseText', 'AJSBtnD asicons-cross') + 
+                (ptext || dtext ? cHE.getDiv(tx('You can also') + ' ' + ptext + dtext + ' ' + tx('the file'), 'AJSUMore') : '');
         var outtext = cHE.getDiv(
                 cHE.getInput('AJSFile', null, AJSHidden, 'file') +
                 cHE.getDiv(choosefile, 'AJSChooseFile'), 'AJSChooseSection');
@@ -1553,11 +1645,11 @@
      * @returns {string} The paste text depending on the user's OS
      */
     function getPasteText() {
-        var text = tx('Paste (ctrl + v)');
+        var modifier = '(ctrl + v)';
         if (navigator.platform.match(/Mac/i)) {
-            text = tx('Paste (cmd + v)');
+            modifier = '(cmd + v)';
         }
-        return text;
+        return tx('paste') + ' ' + modifier;
     }
 
     /**
@@ -1638,7 +1730,7 @@
      * @returns {Boolean} True if the element exists
      */
     function exists(obj) {
-        return obj[length] > 0;
+        return obj.length > 0;
     }
 
     /**
@@ -1685,7 +1777,7 @@
         var obj = object;
         if (is_a('Array', obj)) {
             obj = {};
-            for (var i = 0, len = object[length]; i < len; i++) {
+            for (var i = 0, len = object.length; i < len; i++) {
                 if (object[i]) {
                     obj[i] = object[i];
                 }

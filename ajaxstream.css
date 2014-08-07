@@ -154,8 +154,7 @@
           border-radius: 3px;font-weight: bold;box-shadow: 0px -1px 0px #777;margin: 0 10px;color: #FFF;cursor: pointer;
           position: relative;min-width:120px;}
 .AJSBtnD:hover {top: 1px;}
-.AJSBtnDU {box-shadow: none;cursor: default;background: #000;opacity: 0.5;}
-.AJSBtnDU:hover {top: 0;}
+#AJSUMore {color: #555;padding: 10px;cursor:default;}
 #AJSCloseText {min-width: 40px;width: 40px;box-shadow: none;background: #850000;color: #FFF;opacity: 0.7;}
 #AJSCloseText:hover {top: 0;opacity: 1;}
 #AJSChooseFile {position: absolute;top: 50%;margin: -20px 0 0 0;text-align: center;width: 100%;}
@@ -184,8 +183,8 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {max-height:500px;position:relative;max
        transition: right 0.4s, opacity 0.4s;}
 #AJSL {left: -51px;-webkit-transition: left 0.4s, opacity 0.4s;-moz-transition: left 0.4s, opacity 0.4s;
        transition: left 0.4s, opacity 0.4s;}
-#AJSClose {background: #A00000;opacity: 0.5;}
-#AJSClose:hover {opacity: 0.7;background: #A00000 !important;}
+#AJSClose {background: #69722E;opacity: 1;}
+#AJSClose:hover {background: #C0D825 !important;}
 #AJSPreviewActions {position: relative;height: 40px;width: 100%;
     text-align: right;-webkit-transition: top 0.4s;-moz-transition: top 0.4s;transition: top 0.4s;}
 #AJSPreviewActions > div > span {box-sizing: border-box;line-height: 40px;padding: 0 5px;height: 40px;width: 40px;color: #FFF;
