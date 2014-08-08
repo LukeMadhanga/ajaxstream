@@ -780,7 +780,7 @@
                 if (!ZZ.images[key]) {
                     // ZZ.images doesn't yet exist for this upload. Create it
                     var img = new Image();
-                    img.src = upload.src + '?cachekill=' + (new Data().getTime());
+                    img.src = upload.src + '?cachekill=' + (new Date().getTime());
                     ZZ.images[key] = img;
                 }
                 T.getCropped64(elem(key), upload, ZZ.images[key], data);
@@ -1177,9 +1177,10 @@
              * Drag over event handler
              * @param {object(MouseEvent)} e
              */
-            function dragOver (e) {
+            function dragOver (e) {file:///home/luke/Downloads/700px-Flag_of_Albania.svg.png
+
                 var dt = e.dataTransfer;
-                if (dt.items && dt.items[0].kind !== 'file' || dt.types[3] !== 'Files') {
+                if (!in_array(dt.types, 'Files')) {
                     // The thing we are hovering with IS NOT a file, return.
                     return;
                 };
@@ -1346,7 +1347,7 @@
                         if (u.mimetype.match('image/*')) {
                             // Add images to the images cache
                             var img = new Image();
-                            img.src = u.src + '?cachekill=' + (new Data().getTime());
+                            img.src = u.src + '?cachekill=' + (new Date().getTime());
                             ZZ.images[AJS + 'IMG_' + T.id + i] = img;
                         }
                     }
@@ -1701,6 +1702,21 @@
                 }
             }
         }
+    }
+    
+    /**
+     * Determine whether a value exists in an array
+     * @param {array} arr The array to look in
+     * @param {mixed} key The item to search for
+     * @returns {boolean} True if 'key' is in the array
+     */
+    function in_array(arr, key) {
+        for (var i = 0;i < arr.length; i++) {
+            if (arr[i] === key) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
