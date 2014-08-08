@@ -340,6 +340,7 @@
                 T.loaded++;
                 T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded, uploads: T.uploads});
                 if (T.loaded === T.toload) {
+                    $('#AJSFile,#AJSFileLegacy').val(null);
                     $('#AJSLoading').addClass(AJSHidden);
                     $('#AJSUploadSection').addClass(AJSHidden);
                     $('#AJSImagePreview').removeClass(AJSHidden);
@@ -686,8 +687,8 @@
                     var r = positionData.rect,
                     w = r.width,
                     h = r.height,
-                    ow = Math.round((positionData.x2 - positionData.x) * (upload.width / w).toFixed(20)),
-                    oh = Math.round((positionData.y2 - positionData.y) * (upload.height / h).toFixed(20));
+                    ow = round((positionData.x2 - positionData.x) * (upload.width / w).toFixed(20)),
+                    oh = round((positionData.y2 - positionData.y) * (upload.height / h).toFixed(20));
                     var calculated = calcWidthHeight(ow, oh, T.s.maxWidth, T.s.maxHeight);
                     ow = calculated.width;
                     oh = calculated.height;
@@ -1009,7 +1010,7 @@
                         scaleX = upload.width / r.width,
                         scaleY = upload.height / r.height,
                         w = pd.x2 - pd.x,
-                        nh = Math.round(w / ar),
+                        nh = round(w / ar),
                         x = false,
                         y = false;
                         if (nh + pd.y > r.height) {
@@ -1017,7 +1018,7 @@
                             y = r.height - nh;
                             if (nh > r.height) {
                                 nh = r.height;
-                                w = Math.round(nh * ar);
+                                w = round(nh * ar);
                                 y = 0;
                                 if (w + pd.x > r.width) {
                                     // We're too far to the right
@@ -1031,15 +1032,15 @@
                             x: x,
                             y: y
                         }).positionData;
-                        elem('AJSSW').value = Math.round(w * scaleX);
-                        elem('AJSSH').value = Math.round(nh * scaleY);
+                        elem('AJSSW').value = round(w * scaleX);
+                        elem('AJSSH').value = round(nh * scaleY);
                         // Now that we have resized, reposition the translucent background
                         positionRBG(npd);
                     };
                 }
 
                 if (ajssw) {
-                    ajssw.onkeypress = function() {
+                    ajssw.onchange = function() {
                         var v = this.value,
                         r = elem('AJSResImg').getBoundingClientRect(),
                         pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
@@ -1054,12 +1055,13 @@
                             // We were given something dodgy. Return
                             return;
                         }
-                        var scale = upload.width / r.width,
-                        w = Math.round(v / scale),
+                        var scaleX = upload.width / r.width,
+                        scaleY = upload.height / r.height,
+                        w = v,
                         h = pd.y2 - pd.y,
-                        calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight);
-                        w = calculated.width;
-                        h = calculated.height;
+                        calculated = calcWidthHeight(w, h * scaleY, T.s.maxWidth, T.s.maxHeight);
+                        w = calculated.width / scaleX;
+                        h = calculated.height / scaleY;
                         if (w + pd.x > r.width) {
                             x = r.width - w;
                         }
@@ -1076,14 +1078,14 @@
                         }).positionData;
                         // Now that we have resized, reposition the translucent background
                         positionRBG(npd);
-                        this.value = w;
-                        elem('AJSSH').value = h;
+                        this.value = round(calculated.width);
+                        elem('AJSSH').value = round(calculated.height);
                         elem('AJSSAR').value = getLowestFraction(w / h);
                     };
                 }
 
                 if (ajssh) {
-                    ajssh.onkeypress = function() {
+                    ajssh.onchange = function() {
                         var v = this.value,
                         r = elem('AJSResImg').getBoundingClientRect(),
                         pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
@@ -1098,12 +1100,13 @@
                             // We were given something dodgy, return.
                             return;
                         }
-                        var scale = upload.resizedHeight / r.height,
-                        h = Math.round(v / scale),
+                        var scaleX = upload.width / r.width,
+                        scaleY = upload.height / r.height,
+                        h = v,
                         w = pd.x2 - pd.x,
-                        calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight);
-                        w = calculated.width;
-                        h = calculated.height;
+                        calculated = calcWidthHeight(w * scaleX, h, T.s.maxWidth, T.s.maxHeight);
+                        w = calculated.width / scaleX;
+                        h = calculated.height / scaleY;
                         if (h + pd.y > r.height) {
                             h = r.height - h;
                         }
@@ -1120,8 +1123,8 @@
                         }).positionData;
                         // Now that we have resized, reposition the translucent background
                         positionRBG(npd);
-                        this.value = h;
-                        elem('AJSSW').value = w;
+                        this.value = round(calculated.height);
+                        elem('AJSSW').value = round(calculated.width);
                         elem('AJSSAR').value = getLowestFraction(w / h);
                     };
                 }
@@ -1443,17 +1446,26 @@
         if (width > height) {
             if (width > maxWidth) {
                 //height *= max_width / width;
-                height = Math.round(height *= maxWidth / width);
+                height = round(height *= maxWidth / width);
                 width = maxWidth;
             }
         } else {
             if (height > maxHeight) {
                 //width *= max_height / height;
-                width = Math.round(width *= maxHeight / height);
+                width = round(width *= maxHeight / height);
                 height = maxHeight;
             }
         }
-        return {width: width, height: height};
+        return {width: Number(width), height: Number(height)};
+    }
+    
+    /**
+     * A wrapper for Math.round
+     * @param {float} val The number to round
+     * @returns {Number} The rounded number
+     */
+    function round(val) {
+        return Math.round(val);
     }
 
     /**
@@ -1512,10 +1524,10 @@
             h = h2 + a * h1;
             k = k2 + a * k1;
         }
-//        return h + ":" + k;
-        return (h > 21 ? (h / Math.pow(10, ('' + h + '').length - 1)).toPrecision(2) : h) +
-                ":" +
-                (k > 21 ? (k / Math.pow(10, ('' + k + '').length - 1)).toPrecision(2) : k);
+        return h + ":" + k;
+//        return (h > 21 ? (h / Math.pow(10, ('' + h + '').length - 1)).toPrecision(2) : h) +
+//                ":" +
+//                (k > 21 ? (k / Math.pow(10, ('' + k + '').length - 1)).toPrecision(2) : k);
     }
 
     /**

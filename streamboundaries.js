@@ -78,29 +78,30 @@
                     background: settings.thumb + 'Bg',
                     position: 'relative',
                     'box-sizing': 'border-box',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    'border': 'solid thin #005400'
                 };
                 if (settings.resizable && !$('.sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
                     var html = ('<style>.sb_thumbres {max-width:30px;max-height:30px;position:absolute;width:20%;' + 
                                     'height:20%;}</style>') + (
                                 '<div id="sbtT" class="sb_thumbres" style="cursor:nw-resize;' + 
-                                    'border-left:solid 2px #000;border-top:solid 2px #000;left:0;top:0;"></div>') + (
+                                    'border-left:solid 2px #000;border-top:solid 2px #000;left:-1px;top:-1px;"></div>') + (
                                 '<div id="sbtTM" class="sb_thumbres" style="cursor:n-resize;' + 
-                                    'border-top:solid 2px #000;left:50%;top:0;margin-left: -15px;"></div>') + (
+                                    'border-top:solid 2px #000;left:50%;top:-1px;margin-left: -15px;"></div>') + (
                                 '<div id="sbtR" class="sb_thumbres" style="cursor:ne-resize;' + 
-                                    'border-right:solid 2px #000;border-top:solid 2px #000;right:0;top:0;"></div>') + (
+                                    'border-right:solid 2px #000;border-top:solid 2px #000;right:-1px;top:-1px;"></div>') + (
                                 '<div id="sbtRM" class="sb_thumbres" style="cursor:e-resize;' + 
-                                    'border-right:solid 2px #000;right:0;top:50%;margin-top: -15px;"></div>') + (
+                                    'border-right:solid 2px #000;right:-1px;top:50%;margin-top: -15px;"></div>') + (
                                 '<div id="sbtB" class="sb_thumbres" style="width:20%;height:20%;cursor:se-resize;' + 
                                     'border-right:solid 2px #000;border-bottom:solid 2px #000;max-width:30px;' + 
-                                    'max-height:30px;right:0;bottom:0;"></div>')+ (
+                                    'max-height:30px;right:-1px;bottom:-1px;"></div>')+ (
                                 '<div id="sbtBM" class="sb_thumbres" style="cursor:s-resize;' + 
-                                    'border-bottom:solid 2px #000;left:50%;bottom:0;margin-left: -15px;"></div>') + (
+                                    'border-bottom:solid 2px #000;left:50%;bottom:-1px;margin-left: -15px;"></div>') + (
                                 '<div id="sbtL" class="sb_thumbres" style="cursor:sw-resize;' + 
-                                    'border-left:solid 2px #000;border-bottom:solid 2px #000;left:0;bottom:0;"></div>') + (
+                                    'border-left:solid 2px #000;border-bottom:solid 2px #000;left:-1px;bottom:-1px;"></div>') + (
                                 '<div id="sbtLM" class="sb_thumbres" style="cursor:w-resize;' + 
-                                    'border-left:solid 2px #000;left:0;top:50%;margin-top: -15px;"></div>');
+                                    'border-left:solid 2px #000;left:-1px;top:50%;margin-top: -15px;"></div>');
                     th.append(html);
                 }
                 if (settings.crosshair && ! $('#sb_cross', T).length) {
@@ -407,8 +408,12 @@
                 };
                 settings.onUpdate.call(T, T.positionData);
             };
-            T.mousedown(function(e) {
+            T.find('div').mousedown(function(e) {
                 // Prevent the default dragging behaviour
+                if (e.which === 3) {
+                    // This was a right click
+                    return;
+                }
                 e.preventDefault();
                 T.rect = T[0].getBoundingClientRect();
                 T.thumbRect = T.s.thumb[0].getBoundingClientRect();
@@ -486,7 +491,7 @@
      * @returns {object(plain)} An object with the properties x and y
      */
     function getOffset(e, rect) {
-        var t = $(e.target),
+        var t = e.target.id === 'sb_cross' ? $(e.target).parent() : $(e.target),
         off = t.offset();
         return {
             x: e.pageX - Math.round(off.left) + rect.left,
