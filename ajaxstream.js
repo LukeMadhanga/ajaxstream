@@ -1,12 +1,10 @@
 (function($, win, count, document) {
 
     // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
-    var length = 'length',
-    prop = 'prop',
+    var prop = 'prop',
     AJS = 'AJS',
     hAJS = '#AJS',
     AJSHidden = 'AJSHidden',
-    replace = 'replace',
     name = 'name',
     ef = function() {},
     pastable = 'onpaste' in document,
@@ -17,6 +15,8 @@
     defaults = {
         accept: ['*'],
         allowFilters: !0,
+        defaultCropHeightPer: .8,
+        defaultCropWidthPer: .8,
         fetchRequiredFiles: !1,
         maxFileSize: 2097152,
         maxFiles: 1,
@@ -725,9 +725,11 @@
                 ajsri.css({width: 'auto'});
                 var r = ri.getBoundingClientRect(),
                 w = r.width,
-                h = r.height;
-                var tw = cd.x !== undefined ? cd.x2 - cd.x : w * .8,
-                th = cd.y !== undefined ? cd.y2 - cd.y : h * .8;
+                h = r.height,
+                dcwp = T.s.defaultCropWidthPer,
+                dchp = T.s.defaultCropHeightPer;
+                var tw = cd.x !== undefined ? cd.x2 - cd.x : w * (dcwp > 1 ? 1 : dcwp),
+                th = cd.y !== undefined ? cd.y2 - cd.y : h * (dchp > 1 ? 1 : dchp);
                 ajsritrack.streamBoundaries('updateOpts', {
                     width: w,
                     height: h,
@@ -738,14 +740,15 @@
                         T.fillEditValues(upload, e);
                     }
                 });
+                ajsri.width(w);
+                console.log(Number(((1 - dcwp) / 2) * 100));
                 var pd = ajsritrack.streamBoundaries('reposition', {
-                    x: cd.x || cd.x === 0 ? cd.x : '10%',
-                    y: cd.y || cd.y === 0 ? cd.y : '10%'
+                    x: cd.x || cd.x === 0 ? cd.x : Number(((1 - dcwp) / 2) * 100),
+                    y: cd.y || cd.y === 0 ? cd.y : Number(((1 - dchp) / 2) * 100)
                 }).positionData;
                 positionRBG(pd);
                 pd.rect = r;
                 T.fillEditValues(upload, pd, {width: upload.width, height: upload.height});
-                ajsri.width(w);
                 if (!$('.EIconActive').length) {
                     // We don't have an active edit icon yet, set it to the first one
                     $('.AJSEIcon:first').addClass('EIconActive');
@@ -1177,7 +1180,7 @@
              * Drag over event handler
              * @param {object(MouseEvent)} e
              */
-            function dragOver (e) {file:///home/luke/Downloads/700px-Flag_of_Albania.svg.png
+            function dragOver (e) {
 
                 var dt = e.dataTransfer;
                 if (!in_array(dt.types, 'Files')) {

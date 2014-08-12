@@ -111,11 +111,11 @@
                 }
                 if (x||x===0||settings.x||settings.x===0) {
                     // The user has supplied a x value, move the thumb there
-                    thcss['left'] = x || settings.x;
+                    thcss['left'] = x || x === 0 ? x : settings.x;
                 }
                 if (y||y===0||settings.y||settings.y===0) {
                     // The user has supplied a y value, move the thumb there
-                    thcss['top'] = y||settings.y;
+                    thcss['top'] = y || y === 0 ? y : settings.y;
                 }
                 if (T.s.isViewport) {
                     // Make the track overflow:hidden if the thumb is larger than the boundaries
