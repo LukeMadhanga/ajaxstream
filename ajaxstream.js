@@ -1,6 +1,5 @@
 (function($, win, count, document) {
 
-    // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
     var prop = 'prop',
     AJS = 'AJS',
     hAJS = '#AJS',
@@ -17,17 +16,16 @@
         allowFilters: !0,
         defaultCropHeightPer: .8,
         defaultCropWidthPer: .8,
-        fetchRequiredFiles: !1,
         maxFileSize: 2097152,
         maxFiles: 1,
-        iconPreviewWidth: 200,
         iconPreviewHeight: 200,
+        iconPreviewWidth: 200,
         maxHeight: 1024,
         maxWidth: 1024,
         onbeforeopen: ef,
         onclose: ef,
-        onfilechanging: ef,
         onfilechanged: ef,
+        onfilechanging: ef,
         onfileselected: ef,
         onfilesloaded: ef,
         onfilesloading: ef,
@@ -45,7 +43,6 @@
         onuploadstart: ef,
         pathPrefix: '',
         quality: 1,
-        resize: !0,
         showPreviewOnForm: !1,
         translateFunction: function(s) {
             for (var i = 1; i < arguments.length; i++) {
@@ -56,8 +53,6 @@
         },
         uploadScript: "/upload.php?newupload=true",
         uploadTo: "uploads",
-        uploadWithForm: !1,
-        verbose: !1
     },
     methods = {
         init: function(opts) {
@@ -80,7 +75,6 @@
             // Access object methods using [] instead of '.', meaning that the following methods names can be compressed, saving space
             change = 'change',
             attr = 'attr',
-            uploads = 'uploads',
             currentupload = 'currentupload',
             changing = 'changing',
             currentlength = 'currentlength';
@@ -157,7 +151,7 @@
                 leg[0].id = null;
                 $('#AJSLegacyForm').prop({action: T.s.uploadScript}).append(leg);
                 orig.unbind('change', T.filechanged).change(T.filechanged);
-                T.event('legacyuploadstart', input, {original: T[0]});
+                T.event('legacyuploadstart', input, {original: T[0], stream: T, uploads: T.uploads});
                 elem('AJSLegacyForm').submit();
                 $('#AJSLoading').removeClass(AJSHidden);
             };
@@ -187,7 +181,8 @@
                     win['AJSLegacy'] = null;
                 } else {
                     // There was an error so alert the user
-                    T.event('legacyuploadfail', null, {original: T, error: results.error, results: results, uploads: T.uploads});
+                    T.event('legacyuploadfail', null, {original: T[0], error: results.error, results: results, uploads: T.uploads,
+                        stream: T});
                     streamConfirm(tx('Error'), {Close: ef}, results.error, {nocancel: !0});
                 }
             };
@@ -208,7 +203,8 @@
                     return;
                 }
                 T.toload = filelist.length;
-                T.event('fileselected', this, {originalEvent: e, files: filelist, toload: T.toload, original: T, uploads: T.uploads});
+                T.event('fileselected', this, {originalEvent: e.originalEvent, files: filelist, toload: T.toload, original: T[0], 
+                    stream: T, jQueryEvent: e, uploads: T.uploads});
                 if (fapi) {
                     for (var i = 0; i < len; i++) {
                         if (!filelist[i]) {
@@ -241,7 +237,8 @@
                         }
                     } else {
                         T.event('filechanging', this, {
-                            originalEvent: e, file: filelist[0], current: T.uploads[T[changing]], original: T, uploads: T.uploads});
+                            originalEvent: e.originalEvent, file: filelist[0], current: T.uploads[T[changing]], original: T[0], 
+                                    jQueryEvent: e, stream: T, uploads: T.uploads});
                         T.process(filelist[0], T[changing], !0, this);
                     }
                 } else {
@@ -284,11 +281,12 @@
                             var img = new Image();
                             img.onload = function() {
                                 var image = this;
+                                image.imageloaded = true;
                                 filedata.width = filedata.resizedWidth = filedata.croppedWidth = image.width;
                                 filedata.height = filedata.resizedHeight = filedata.croppedHeight = image.height;
                                 filedata.base64 = null;
                                 filedata.cropdata = {};
-                                ZZ.images[AJS + 'IMG_' + T.id + index] = this;
+                                ZZ.images[AJS + 'IMG_' + T.id + index] = image;
                                 T.afterFileRead(filedata, changing, target);
                             };
                             img.src = dataURL;
@@ -338,7 +336,7 @@
              */
             T.attemptProgression = function(target, index, old) {
                 T.loaded++;
-                T.event('filesloading', target, {original: T, toload: T.toload, loaded: T.loaded, uploads: T.uploads});
+                T.event('filesloading', target, {original: T[0], toload: T.toload, loaded: T.loaded, uploads: T.uploads, stream: T});
                 if (T.loaded === T.toload) {
                     $('#AJSFile,#AJSFileLegacy').val(null);
                     $('#AJSLoading').addClass(AJSHidden);
@@ -348,9 +346,10 @@
                     var gotoend = T[changing] === !1;
                     if (T[changing] === !1) {
                         // Call the filechanged event
-                        T.event('filechanged', target, {original: T, newfile: T.uploads[index], oldfile: old, uploads: T.uploads});
+                        T.event('filechanged', target, {original: T[0], newfile: T.uploads[index], oldfile: old, 
+                                                                                            uploads: T.uploads, stream: T});
                     }
-                    T.event('filesloaded', target, {loaded: T.loaded, original: T, uploads: T.uploads});
+                    T.event('filesloaded', target, {loaded: T.loaded, original: T[0], uploads: T.uploads, stream: T});
                     T[changing] = !1;
                     T.toload = T.loaded = 0;
                     T.displayUpload(null, gotoend);
@@ -517,16 +516,25 @@
                     w *= (ow / ri.width());
                     h *= (oh / ri.height());
                     var calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight),
-                            cw = calculated.width,
-                            ch = calculated.height;
+                    cw = calculated.width,
+                    ch = calculated.height;
                     var sx = cw / w,
                     sy = ch / h;
                     cur.croppedWidth = canvas.width = cw;
                     cur.croppedHeight = canvas.height = ch;
-                    var x = -data.x * (ow / ri.width()) * sx;
-                    var y = -data.y * (oh / ri.height()) * sy;
-                    ctx.drawImage(img, x, y, ow * sx, oh * sy);
-                    cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
+                    var x = -data.x * (ow / ri.width()) * sx,
+                    y = -data.y * (oh / ri.height()) * sy;
+                    if (img.imageloaded) {
+                        ctx.drawImage(img, x, y, ow * sx, oh * sy);
+                        cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
+                    } else {
+                        $('#AJSLoading').removeClass(AJSHidden);
+                        img.onload = function () {
+                            ctx.drawImage(img, x, y, ow * sx, oh * sy);
+                            cur.base64 = canvas.toDataURL('image/jpeg', T.s.quality);
+                            $('#AJSLoading').addClass(AJSHidden);
+                        };
+                    }
                 }
             };
 
@@ -783,8 +791,12 @@
                 if (!ZZ.images[key]) {
                     // ZZ.images doesn't yet exist for this upload. Create it
                     var img = new Image();
+                    img.onload = function () {
+                        this.imageloaded = true;
+                    };
                     img.src = upload.src + '?cachekill=' + (new Date().getTime());
                     ZZ.images[key] = img;
+                    
                 }
                 T.getCropped64(elem(key), upload, ZZ.images[key], data);
                 var ncropdata = {x: data.x, x2: data.x2, y: data.y, y2: data.y2};
@@ -1350,6 +1362,9 @@
                         if (u.mimetype.match('image/*')) {
                             // Add images to the images cache
                             var img = new Image();
+                            img.onload = function () {
+                                this.imageloaded = true;
+                            };
                             img.src = u.src + '?cachekill=' + (new Date().getTime());
                             ZZ.images[AJS + 'IMG_' + T.id + i] = img;
                         }
