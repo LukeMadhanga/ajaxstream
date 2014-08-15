@@ -144,7 +144,7 @@
 .asicons-zoomout:before {
 	content: "\e616";
 }
-[id^='AJS'], [class^='AJS'] {font-family: sans-serif;}
+[id^='AJS'], [class^='AJS'] {font-family: inherit;}
 .AJSHidden {display: none !important;}
 .AJSDisabled {color:#999 !important;cursor: default !important;}
 .AJSDisabled:hover {background: initial !important;}

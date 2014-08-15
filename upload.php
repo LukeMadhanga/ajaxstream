@@ -74,10 +74,47 @@ class cAjaxStream {
     }
     
     /**
+     * Get 
+     * @param array $postkeys A list of post keys that should have the upload data. If left empty, the function will iterate through
+     *  all of the POST variables looking for any that begin with 'AJS_'
+     * @return array An array of arrays keyed by each of the post keys
+     */
+    static function getUploads($postkeys = array()) {
+        $values = array();
+        $uploads = array();
+        if (empty($postkeys)) {
+            // The user has not given us any keys to seek. Fill the array up by iterating through all of the post variables
+            foreach ($_POST as $key => $p) {
+                if (preg_match("/^AJS\_/", $key)) {
+                    // The post variable begins with 'AJS_', assume it is one of ours
+                    $postkeys[] = $key;
+                    $values[$key] = $p;
+                }
+            }
+        }
+        
+        foreach ($postkeys as $key) {
+            if (empty($values[$key])) {
+                $value = filter_input(INPUT_POST, $key);
+            } else {
+                $value = $values[$key];
+            }
+            $data = json_decode($value);
+            foreach ($data as $u) {
+                $u->previousfname = null;
+                $u->inputName = substr($key, 4);
+                $uploads[$key][] = $u;
+            }
+        }
+        return $uploads;
+    }
+    
+    /**
      * Save a base64 encoded string as a file
      * @param string $destination The destination of the upload
      * @param string $base64 The base64 representation of the uploaded file
      * @return int The number of bytes written, or false on failure 
+     * @throws Exception 
      */
     static function saveBase64($destination, $base64) {
         set_error_handler("cAjaxStream::FSE");

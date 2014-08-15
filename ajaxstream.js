@@ -441,6 +441,7 @@
                     h = cur.croppedHeight;
                 }
                 canvas.removeClass(AJSHidden).css({top: (500 - h) / 2});
+                winResize();
             };
 
             /**
@@ -1346,7 +1347,6 @@
              */
             T.draw = function() {
                 // Auto executing
-                var parent = T.parent();
                 T.addClass(AJSHidden);
                 T.attr({'data-ajaxstreamid': T.c});
                 if (exists($('#AJS_' + T[0].id))) {
@@ -1370,19 +1370,19 @@
                         }
                     }
                 } else {
-                    parent.append(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden'));
+                    $(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden')).insertAfter(T);
                 }
 
                 if (T.s.showPreviewOnForm) {
                     // The user wants to see a preivew on the form
-                    parent.append(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
+                    $(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
                         style: 'height:' + T.s.iconPreviewHeight
-                    }));
+                    })).insertAfter(T);
                 } else {
-                    parent.append(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
+                    $(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
                         'data-mandatory': !0, 
                         'data-ajaxstreamid': T.c
-                    }));
+                    })).insertAfter(T);
                 }
                 if (!exists($(hAJS))) {
                     // Only create an ajaxStreamMain if one does not already exist in the DOM
