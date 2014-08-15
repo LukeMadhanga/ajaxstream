@@ -6,10 +6,13 @@ switch ($action) {
     case 'upload':
         require_once 'upload.php';
         $uploads = cAjaxStream::getUploads();
-        $upload = $uploads['AJS_file'][0];
-        cAjaxStream::saveBase64("uploads/{$upload->name}", $upload->base64);
-        $upload->src = "uploads/{$upload->name}";
-        $data = json_encode(array($upload));
+        foreach ($uploads as $data) {
+            foreach ($data as $upload) {
+                cAjaxStream::saveBase64("uploads/{$upload->name}", $upload->base64);
+                $upload->src = "uploads/{$upload->name}";
+            }
+        }
+        $data = json_encode($uploads['AJS_file']);
     default:
         echo <<<HTML
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

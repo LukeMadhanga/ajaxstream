@@ -52,7 +52,7 @@
             return s;
         },
         uploadScript: "/upload.php?newupload=true",
-        uploadTo: "uploads",
+        uploadTo: "uploads"
     },
     methods = {
         init: function(opts) {
@@ -1370,19 +1370,19 @@
                         }
                     }
                 } else {
-                    $(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden')).insertAfter(T);
+                    $(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden')).insertAfter(T[0]);
                 }
 
                 if (T.s.showPreviewOnForm) {
                     // The user wants to see a preivew on the form
                     $(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
                         style: 'height:' + T.s.iconPreviewHeight
-                    })).insertAfter(T);
+                    })).insertAfter(T[0]);
                 } else {
                     $(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
                         'data-mandatory': !0, 
                         'data-ajaxstreamid': T.c
-                    })).insertAfter(T);
+                    })).insertAfter(T[0]);
                 }
                 if (!exists($(hAJS))) {
                     // Only create an ajaxStreamMain if one does not already exist in the DOM
