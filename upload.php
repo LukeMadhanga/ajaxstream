@@ -137,8 +137,14 @@ class cAjaxStream {
     static function getFileBinary($src) {
         if (preg_match("/^data\:/", $src)) {
             // Remove the first part of the string to exlude everything upto ';base64,'
-            $binary = base64_decode(preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$2", $src));
+            // Can't use a regex because PHP5.3 doesn't support it
+            // @todo why doesn't base64_decode(preg_replace("/^data\:(:?.*)?base64\,(.*)/", "$2", $src)) work in PHP5.3
+            $pos = strpos($src, 'base64,');
+ 	    $strlen = 7; // Length of the string 'base64,'
+            $binary = base64_decode(substr($src, $pos + $strlen));
         } else {
+            $pos = strpos($src, '?cachekill=');
+            $src = substr($src, 0, $pos);
             $binary = file_get_contents($src);
         }
         return $binary;

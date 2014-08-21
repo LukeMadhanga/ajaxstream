@@ -43,6 +43,7 @@
         onuploadstart: ef,
         pathPrefix: '',
         quality: 1,
+        readonly: !1,
         showPreviewOnForm: !1,
         translateFunction: function(s) {
             for (var i = 1; i < arguments.length; i++) {
@@ -289,6 +290,12 @@
                                 ZZ.images[AJS + 'IMG_' + T.id + index] = image;
                                 T.afterFileRead(filedata, changing, target);
                             };
+                            img.onerror = function () {
+//                                streamConfirm(tx('Error'), {Close: ef}, tx('There was an error processing the selected file'), 
+//                                    {nocancel: true});
+                                filedata.src = null;
+                                T.afterFileRead(filedata, changing, target);
+                            };
                             img.src = dataURL;
                         } else {
                             // Load normally
@@ -382,8 +389,14 @@
                     $('#AJSAdd')[T.currentlength + 1 > T.s.maxFiles ? 'addClass' : 'removeClass'](AJSHidden);
                     var src = cur.mimetype.match('image/*') ? cur.src : null;
                     T.toggleLR();
-                    T.drawImage(cur, src);
-                    T.currentupload = cur.index;
+                    if (src) {
+                        T.drawImage(cur, src);
+                        T.currentupload = cur.index;
+                    } else {
+                        streamConfirm(tx('Corrupt upload'), {'ok': T.deleteUpload}, 
+                                tx('There is no source for this upload meaning that you cannot continue. Click \'ok\' to delete'), 
+                            {nocancel: true});
+                    }
                 } else {
                     T.resetToUpload();
                 }
@@ -833,6 +846,7 @@
                 T.uploads.length ? T.displayUpload() : T.resetToUpload();
                 // Call the 'onopen' handler
                 T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
+                toggleReadOnly(T.s.readonly);
             }
 
             /**
@@ -858,7 +872,55 @@
                 T.displayUpload(T.uploads[index]);
                 $('#AJSMain > div').addClass(AJSHidden);
                 $('#AJSImagePreview').removeClass(AJSHidden);
+                T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
+                toggleReadOnly(T.s.readonly);
             }
+            
+            /**
+             * Show or hide the edit functions on the header of the AJS window
+             * @param {boolean} make True to hide the edit functions on the AJS window
+             */
+            function toggleReadOnly(make) {
+                var action = make ? 'addClass' : 'removeClass';
+                $('#AJSChange,#AJSEdit,#AJSRemove')[action](AJSHidden);
+            }
+            
+            /**
+             * Display a preview of an upload file
+             * @param {object(plain)} cur The object that describes the file for which we are seeking a preview
+             * @param {boolean} gotoend
+             */
+            T.deleteUpload = function () {
+                // Remove the file by re-indexing the uploads array
+                var temp = [],
+                todelete = !1,
+                curupload = !1;
+                for (var i = 0, len = T.uploads.length; i < len; i++) {
+                    if (T.uploads[i] && i !== T[currentupload]) {
+                        // We also need to reindex the uploaded file before saving
+                        var upload = T.uploads[i];
+                        upload.index = temp.length;
+                        temp.push(upload);
+                        if (curupload !== !1 && todelete !== !1) {
+                            // Set the new currrentupload
+                            curupload = i;
+                        }
+                    } else {
+                        todelete = i;
+                    }
+                }
+                // Remove the image for this upload
+                $('#AJSIMG_' + T.id + T[currentupload]).remove();
+                T.uploads = temp;
+                T.currentlength = T.uploads.length;
+                T.currentupload = curupload !== false ? curupload : 0;
+                // Update the value for this input
+                $('#AJS_' + T[0].id).val(json_encode(T.uploads));
+                $('#AJSUploadSection').addClass(AJSHidden);
+                $('#AJSImagePreview').removeClass(AJSHidden);
+                T.toggleLR();
+                T.displayUpload();  
+            };
 
             /**
              * Initialise all of the events in one function
@@ -955,42 +1017,16 @@
                 }
 
                 $('#AJSRemove').unbind('click').click(function() {
-                    streamConfirm(tx('Are you sure you want to remove this file?'), function() {
-                        // Remove the file by re-indexing the uploads array
-                        var temp = [],
-                        todelete = !1,
-                        curupload = !1;
-                        for (var i = 0, len = T.uploads.length; i < len; i++) {
-                            if (T.uploads[i] && i !== T[currentupload]) {
-                                // We also need to reindex the uploaded file before saving
-                                var upload = T.uploads[i];
-                                upload.index = temp.length;
-                                temp.push(upload);
-                                if (curupload !== !1 && todelete !== !1) {
-                                    // Set the new currrentupload
-                                    curupload = i;
-                                }
-                            } else {
-                                todelete = i;
-                            }
-                        }
-                        // Remove the image for this upload
-                        $('#AJSIMG_' + T.id + T[currentupload]).remove();
-                        T.uploads = temp;
-                        T.currentlength = T.uploads.length;
-                        T.currentupload = curupload !== false ? curupload : 0;
-                        // Update the value for this input
-                        $('#AJS_' + T[0].id).val(json_encode(T.uploads));
-                        $('#AJSUploadSection').addClass(AJSHidden);
-                        $('#AJSImagePreview').removeClass(AJSHidden);
-                        T.toggleLR();
-                        T.displayUpload();
-                    }, tx('This simply removes the file from the list of files to be uploaded, and nowhere else'));
+                    streamConfirm(tx('Are you sure you want to remove this file?'), T.deleteUpload, 
+                                        tx('This simply removes the file from the list of files to be uploaded, and nowhere else'));
                 });
 
                 $('#AJSClose,#AJSCloseText').unbind('click').click(function() {
                     // Close the upload screen
-                    $('#AJS_' + T[0].id).val(json_encode(T.uploads));
+                    if (!T.s.readonly) {
+                        // Only save the form if we're not readonly. This is a trap in case someone attempts to get smart
+                        $('#AJS_' + T[0].id).val(json_encode(T.uploads));
+                    }
                     $(hAJS).hide();
                     if (T.s.showPreviewOnForm) {
                         $('#AJSFormPrev_' + T.id).html(drawFormPreview());
@@ -1168,6 +1204,11 @@
              * @param {boolean} add True to enable drag/drop functionality
              */
             function toggleDragPaste(add) {
+                if (T.s.readonly) {
+                    // Make sure that we do not allow any way for a user to add files. The files won't be saved regardless, but it 
+                    //  will look like a bug
+                    add = false;
+                }
                 if (draggable) {
                     if (add) {
                         // Add drag/drop functionality
