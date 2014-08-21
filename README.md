@@ -25,14 +25,14 @@ If you want AjaxStream to populate a form for you, you should have a hidden elem
 **JavaScript**<br/>
 To initialise AjaxStream with all of the defaults
 ```javascript
-$(‘#myfile’).ajaxStream();
+$("#myfile").ajaxStream();
 ```
 If you have more than one AjaxStream on any one page you can use the function $.ajaxStream.setDefaults(); to set defaults for all of the AjaxStreams on the page. You can override the defaults for a single AjaxStream by simply supplying options in the plugin declaration.
 ```javascript
 $.ajaxStream.setDefaults({
     opt: value
 });
-$(‘#myfile’).ajaxStream({opt2: value2});
+$("#myfile").ajaxStream({opt2: value2});
 ```
 
 *<b>NB</b> Defaults MUST be set before the first plugin declaration*
@@ -43,76 +43,72 @@ $(‘#myfile’).ajaxStream({opt2: value2});
 
 <table dir="ltr"><tbody>
 <tr>
-<td>Property&nbsp;</td> <td>Type&nbsp;</td> <td>Default&nbsp;</td> <td> Legacy&nbsp; support&nbsp; </td> <td>&nbsp;</td> </tr>
+<td><b>Property</b> </td> <td><b>Type</b> </td> <td><b>Default</b> </td> <td><b>Legacy  support</b></td> <td> </td> </tr>
 <tr>
-<td>accept&nbsp;</td> <td>array&nbsp;</td> <td>[‘*’]&nbsp;</td> <td>  ×&nbsp; </td> <td>  The&nbsp;MIME&nbsp;types&nbsp;of&nbsp;the&nbsp;files&nbsp;that&nbsp;we&nbsp;will&nbsp; allow&nbsp;to&nbsp;be&nbsp;upload,&nbsp;e.g.&nbsp;‘image/*’&nbsp;  &nbsp;  NB&nbsp;Currently,&nbsp;browsers&nbsp;only&nbsp;support&nbsp;one&nbsp; MIME&nbsp;type&nbsp;at&nbsp;a&nbsp;time&nbsp;  </td> </tr>
+<td>accept </td> <td>array </td> <td>[‘*’] </td> <td>  ×  </td> <td>  The MIME types of the files that we will  allow to be upload, e.g. ‘image/*’      NB Currently, browsers only support one  MIME type at a time   </td> </tr>
 <tr>
-<td>allowFilters&nbsp;</td> <td>boolean&nbsp;</td> <td>true&nbsp;</td> <td>  ×&nbsp; </td> <td> Not&nbsp;yet&nbsp;implemented.&nbsp; &nbsp; Allow&nbsp;users&nbsp;to&nbsp;use&nbsp;the&nbsp;filters&nbsp;library&nbsp; </td> </tr>
+<td>allowFilters </td> <td>boolean </td> <td>true </td> <td>  ×  </td> <td> Not yet implemented.    Allow users to use the filters library  </td> </tr>
 <tr>
-<td>  defaultCropHeightPer&nbsp; </td> <td>float&nbsp;&nbsp;</td> <td>.8&nbsp;</td> <td>  ×&nbsp; </td> <td> If&nbsp;the&nbsp;user&nbsp;is&nbsp;cropping&nbsp;an&nbsp;image,&nbsp;what&nbsp; percentage&nbsp;of&nbsp;the&nbsp;full&nbsp;height&nbsp;should&nbsp;the&nbsp; crop&nbsp;square&nbsp;be?&nbsp;‘1’&nbsp;means&nbsp;100%,&nbsp;‘.8’&nbsp; means&nbsp;80%&nbsp; </td> </tr>
+<td>  defaultCropHeightPer  </td> <td>float  </td> <td>.8 </td> <td>  ×  </td> <td> If the user is cropping an image, what  percentage of the full height should the  crop square be? ‘1’ means 100%, ‘.8’  means 80%  </td> </tr>
 <tr>
-<td>  defaultCropHeightPer&nbsp; </td> <td>float&nbsp;</td> <td>.8&nbsp;</td> <td>  ×&nbsp; </td> <td> If&nbsp;the&nbsp;user&nbsp;is&nbsp;cropping&nbsp;an&nbsp;image,&nbsp;what&nbsp; percentage&nbsp;of&nbsp;the&nbsp;full&nbsp;width&nbsp;should&nbsp;the&nbsp; crop&nbsp;square&nbsp;be?&nbsp;‘1’&nbsp;means&nbsp;100%,&nbsp;‘.8’&nbsp; means&nbsp;80%&nbsp; </td> </tr>
+<td>  defaultCropHeightPer  </td> <td>float </td> <td>.8 </td> <td>  ×  </td> <td> If the user is cropping an image, what  percentage of the full width should the  crop square be? ‘1’ means 100%, ‘.8’  means 80%  </td> </tr>
 <tr>
-<td>maxFileSize&nbsp;</td> <td>int&nbsp;(bytes)&nbsp;</td> <td>2097152&nbsp;</td> <td>  ✓&nbsp; </td> <td> The&nbsp;maximum&nbsp;file&nbsp;size&nbsp;of&nbsp;any&nbsp;one&nbsp;file.&nbsp; This&nbsp;value&nbsp;is&nbsp;listened&nbsp;to&nbsp;if&nbsp;the&nbsp;upload&nbsp;is&nbsp; being&nbsp;performed&nbsp;using&nbsp;the&nbsp;legacy&nbsp;script&nbsp; </td> </tr>
+<td>maxFileSize </td> <td>int (bytes) </td> <td>2097152 </td> <td>  ✓  </td> <td> The maximum file size of any one file.  This value is listened to if the upload is  being performed using the legacy script  </td> </tr>
 <tr>
-<td>maxFiles&nbsp;</td> <td>int&nbsp;</td> <td>1&nbsp;</td> <td>  ✓&nbsp; </td> <td> Maximum&nbsp;number&nbsp;of&nbsp;files&nbsp;allowed&nbsp;to&nbsp;be&nbsp; uploaded&nbsp;with&nbsp;the&nbsp;current&nbsp;input&nbsp; </td> </tr>
+<td>maxFiles </td> <td>int </td> <td>1 </td> <td>  ✓  </td> <td> Maximum number of files allowed to be  uploaded with the current input  </td> </tr>
 <tr>
-<td>  iconPreviewHeight&nbsp; </td> <td>int&nbsp;(px)&nbsp;</td> <td>200&nbsp;</td> <td>  ✓&nbsp; </td> <td>   If&nbsp;the&nbsp;setting&nbsp;showPreviewOnForm&nbsp;is&nbsp;  set&nbsp;to&nbsp;true,&nbsp;a&nbsp;preview&nbsp;on&nbsp;the&nbsp;main&nbsp; upload&nbsp;form&nbsp;will&nbsp;be&nbsp;shown.&nbsp;What&nbsp;height&nbsp; should&nbsp;this&nbsp;preview&nbsp;be?&nbsp; </td> </tr>
+<td>  iconPreviewHeight  </td> <td>int (px) </td> <td>200 </td> <td>  ✓  </td> <td>   If the setting showPreviewOnForm is   set to true, a preview on the main  upload form will be shown. What height  should this preview be?  </td> </tr>
 <tr>
-<td>  iconPreviewWidth&nbsp; </td> <td>int&nbsp;(px)&nbsp;</td> <td>200&nbsp;</td> <td>  ✓&nbsp; </td> <td>   If&nbsp;the&nbsp;setting&nbsp;showPreviewOnForm&nbsp;is&nbsp;  set&nbsp;to&nbsp;true,&nbsp;a&nbsp;preview&nbsp;on&nbsp;the&nbsp;main&nbsp; upload&nbsp;form&nbsp;will&nbsp;be&nbsp;shown.&nbsp;What&nbsp;width&nbsp; should&nbsp;this&nbsp;preview&nbsp;be?&nbsp; </td> </tr>
+<td>  iconPreviewWidth  </td> <td>int (px) </td> <td>200 </td> <td>  ✓  </td> <td>   If the setting showPreviewOnForm is   set to true, a preview on the main  upload form will be shown. What width  should this preview be?  </td> </tr>
 </tbody></table>
 
 
 
 <table dir="ltr" class="level-zero"><tbody class="level-one">
 <tr>
-<td>Method&nbsp;</td> <td>&nbsp;</td> </tr>
+<td><b>Method</b> </td> <td> </td> </tr>
 <tr>
-<td>  onbeforeopen&nbsp; </td> <td>  The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;the&nbsp;user&nbsp;clicks&nbsp;on&nbsp;upload&nbsp;button&nbsp;that&nbsp;is&nbsp;in&nbsp;place&nbsp;of&nbsp;the&nbsp;original&nbsp; input:file.&nbsp;One&nbsp;could&nbsp;possibly&nbsp;use&nbsp;this&nbsp;to&nbsp;fake&nbsp;the&nbsp;upload&nbsp;data,&nbsp;thus&nbsp;using&nbsp;one&nbsp;AjaxStream&nbsp; whilst&nbsp;looking&nbsp;like&nbsp;a&nbsp;new&nbsp;file&nbsp;input&nbsp;  &nbsp; This&nbsp;Argument&nbsp; object(jQuery)&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp;   elemid&nbsp;The&nbsp;id&nbsp;of&nbsp;the&nbsp;original&nbsp;element&nbsp;  index&nbsp;The&nbsp;index&nbsp;of&nbsp;this&nbsp;element&nbsp;in&nbsp;the&nbsp;selector&nbsp;used&nbsp;to&nbsp;declare&nbsp;AjaxStream&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>onbeforeopen</td> <td>  The function to run when the user clicks on upload button that is in place of the original  input:file. One could possibly use this to fake the upload data, thus using one AjaxStream  whilst looking like a new file input     <br/><br/><b>This argument</b><br/>  object(jQuery)    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>    <br/><em>elemid</em> The id of the original element   <br/><em>index</em> The index of this element in the selector used to declare AjaxStream  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>onclose&nbsp;</td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;the&nbsp;user&nbsp;closes&nbsp;the&nbsp;AjaxStream&nbsp;window&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(jQuery)&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; length&nbsp;The&nbsp;number&nbsp;of&nbsp;files&nbsp;uploaded&nbsp; </td> </tr>
+<td>onclose</td> <td> The function to run when the user closes the AjaxStream window    <br/><br/><b>This argument</b><br/>  object(jQuery)    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>length</em> The number of files uploaded  </td> </tr>
 <tr>
-<td></td> <td> original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td></td> <td> <br/><em>original</em> The original file input  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onfilechanged&nbsp; </td> <td>  The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;an&nbsp;uploaded&nbsp;file&nbsp;has&nbsp;been&nbsp;changed.&nbsp;This&nbsp;function&nbsp;can&nbsp;never&nbsp;be&nbsp; called&nbsp;if&nbsp;the&nbsp;upload&nbsp;was&nbsp;legacy.&nbsp;  &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;original&nbsp;file&nbsp;element&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; newfile&nbsp;The&nbsp;object&nbsp;that&nbsp;describes&nbsp;the&nbsp;new&nbsp;upload&nbsp; oldfile&nbsp;The&nbsp;object&nbsp;that&nbsp;describes&nbsp;the&nbsp;previous&nbsp;upload&nbsp;before&nbsp;it&nbsp;got&nbsp;changed&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>onfilechanged</td> <td>  The function to run when an uploaded file has been changed. This function can never be  called if the upload was legacy.     <br/><br/><b>This argument</b><br/>  object(DOMElement) The original file element    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>newfile</em> The object that describes the new upload  <br/><em>oldfile</em> The object that describes the previous upload before it got changed  <br/><em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onfilechanging&nbsp; </td> <td>  The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;an&nbsp;uploaded&nbsp;file&nbsp;is&nbsp;in&nbsp;the&nbsp;process&nbsp;of&nbsp;being&nbsp;changed.&nbsp;This&nbsp;function&nbsp; can&nbsp;never&nbsp;be&nbsp;called&nbsp;if&nbsp;the&nbsp;upload&nbsp;was&nbsp;legacy.&nbsp;  &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;input:file&nbsp;that&nbsp;was&nbsp;‘clicked’&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; current&nbsp;The&nbsp;object&nbsp;that&nbsp;describes&nbsp;the&nbsp;current&nbsp;upload&nbsp;as&nbsp;it&nbsp;is&nbsp;before&nbsp;we&nbsp;change&nbsp;it&nbsp; file&nbsp;The&nbsp;browser&nbsp;generated&nbsp;File&nbsp;object&nbsp;that&nbsp;describes&nbsp;the&nbsp;uploaded&nbsp;file&nbsp;   jQueryEvent&nbsp;The&nbsp;jQuery&nbsp;event&nbsp;object&nbsp;  originalEvent&nbsp;The&nbsp;original&nbsp;event&nbsp;object&nbsp;&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>  onfilechanging  </td> <td>  The function to run when an uploaded file is in the process of being changed. This function  can never be called if the upload was legacy.     <br/><br/><b>This argument</b><br/>  object(DOMElement) The input:file that was ‘clicked’    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>current</em> The object that describes the current upload as it is before we change it  <br/><em>file</em> The browser generated File object that describes the uploaded file    <br/><em>jQueryEvent</em> The jQuery event object   <br/><em>originalEvent</em> The original event object   <br/><em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>onfileselected&nbsp;</td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;after&nbsp;a&nbsp;file(s)&nbsp;has&nbsp;been&nbsp;selected&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;input:file&nbsp;that&nbsp;was&nbsp;‘clicked’&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; files&nbsp;The&nbsp;browser&nbsp;generated&nbsp;FileList&nbsp;object&nbsp;that&nbsp;describes&nbsp;the&nbsp;uploaded&nbsp;files&nbsp;   jQueryEvent&nbsp;The&nbsp;jQuery&nbsp;event&nbsp;object&nbsp;  originalEvent&nbsp;The&nbsp;original&nbsp;event&nbsp;object&nbsp;&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp;   toload&nbsp;The&nbsp;amount&nbsp;of&nbsp;files&nbsp;that&nbsp;we&nbsp;are&nbsp;preparing&nbsp;to&nbsp;load&nbsp;  uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>onfileselected</td> <td> The function to run after a file(s) has been selected    <br/><br/><b>This argument</b><br/>  object(DOMElement) The input:file that was ‘clicked’    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>files</em> The browser generated FileList object that describes the uploaded files    <br/><em>jQueryEvent</em> The jQuery event object   <br/><em>originalEvent</em> The original event object   <br/><em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data    <br/><em>toload</em> The amount of files that we are preparing to load   <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onfilesloaded&nbsp; </td> <td>The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;the&nbsp;user&nbsp;closes&nbsp;the&nbsp;AjaxStream&nbsp;window&nbsp;</td> </tr>
+<td>  <b>Param1</b><br/>ed  </td> <td>The function to run when the user closes the AjaxStream window <br/><br/><b>This argument</b><br/>  object(DOMElement) The input:file that was ‘clicked’    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/><em>loaded</em> The amount of files that were loaded  <br/><em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td></td> <td> &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;input:file&nbsp;that&nbsp;was&nbsp;‘clicked’&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; loaded&nbsp;The&nbsp;amount&nbsp;of&nbsp;files&nbsp;that&nbsp;were&nbsp;loaded&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>  onfilesloading  </td> <td> The function to run when the user closes the AjaxStream window    <br/><br/><b>This argument</b><br/>  object(DOMElement) The input:file that was ‘clicked’    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/><em>loaded</em> The amount of files that have been loaded  <br/><em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data    <br/><em>toload</em> The amount of files to be loaded   <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onfilesloading&nbsp; </td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;the&nbsp;user&nbsp;closes&nbsp;the&nbsp;AjaxStream&nbsp;window&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;input:file&nbsp;that&nbsp;was&nbsp;‘clicked’&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; loaded&nbsp;The&nbsp;amount&nbsp;of&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;loaded&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp;   toload&nbsp;The&nbsp;amount&nbsp;of&nbsp;files&nbsp;to&nbsp;be&nbsp;loaded&nbsp;  uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>oninit </td> <td> The function to run when AjaxStream is applied to a file input    <br/><br/><b>This argument</b><br/>  object(jQuery)    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>original</em> The original file input  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>oninit&nbsp;</td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;AjaxStream&nbsp;is&nbsp;applied&nbsp;to&nbsp;a&nbsp;file&nbsp;input&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(jQuery)&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>  onlegacyuploadfail  </td> <td> The function to run when an upload has failed during a legacy upload    <br/><br/><b>This argument</b><br/>  null    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/><em>error</em> The error message detailing why the upload failed  <br/><em>original</em> The original file input  <br/><em>results</em> The object that was generated server side describing the upload  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onlegacyuploadfail&nbsp; </td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;an&nbsp;upload&nbsp;has&nbsp;failed&nbsp;during&nbsp;a&nbsp;legacy&nbsp;upload&nbsp; &nbsp; This&nbsp;Argument&nbsp; null&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; error&nbsp;The&nbsp;error&nbsp;message&nbsp;detailing&nbsp;why&nbsp;the&nbsp;upload&nbsp;failed&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; results&nbsp;The&nbsp;object&nbsp;that&nbsp;was&nbsp;generated&nbsp;server&nbsp;side&nbsp;describing&nbsp;the&nbsp;upload&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>  onlegacyuploadfinish  </td> <td> The function to run when an upload has completed using the legacy script    <br/><br/><b>This argument</b><br/>  object(jQuery)    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>original</em> The original file input  <br/><em>results</em> The object that was generated server side describing the upload  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onlegacyuploadfinish&nbsp; </td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;an&nbsp;upload&nbsp;has&nbsp;completed&nbsp;using&nbsp;the&nbsp;legacy&nbsp;script&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(jQuery)&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; results&nbsp;The&nbsp;object&nbsp;that&nbsp;was&nbsp;generated&nbsp;server&nbsp;side&nbsp;describing&nbsp;the&nbsp;upload&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>  onlegacyuploadstart  </td> <td> The function to run when a legacy upload is beginning    <br/><br/><b>This argument</b><br/>  object(DOMElement) The input:file that was ‘clicked’    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/>  <em>original</em> The original file input  <br/><em>stream</em> The jQuery object for this file input that holds all of the AjaxStream data  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
 <tr>
-<td>  onlegacyuploadstart&nbsp; </td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;when&nbsp;a&nbsp;legacy&nbsp;upload&nbsp;is&nbsp;beginning&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(DOMElement)&nbsp;The&nbsp;input:file&nbsp;that&nbsp;was&nbsp;‘clicked’&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; stream&nbsp;The&nbsp;jQuery&nbsp;object&nbsp;for&nbsp;this&nbsp;file&nbsp;input&nbsp;that&nbsp;holds&nbsp;all&nbsp;of&nbsp;the&nbsp;AjaxStream&nbsp;data&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>onopen </td> <td> The function to run after the Ajaxstream window opens    <br/><br/><b>This argument</b><br/>  object(jQuery)    <br/><br/><b>Parameters</b><br/><em>param1</em> object(Plain)     <br/><br/><b>Param1</b><br/><em>length</em> The number of files uploaded  <br/><em>original</em> The original file input  <br/><em>uploads</em> The array of objects that describe the files that have been uploaded  </td> </tr>
+<td>onuploadstart</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>onopen&nbsp;</td> <td> The&nbsp;function&nbsp;to&nbsp;run&nbsp;after&nbsp;the&nbsp;Ajaxstream&nbsp;window&nbsp;opens&nbsp; &nbsp; This&nbsp;Argument&nbsp; object(jQuery)&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;object(Plain)&nbsp;&nbsp; &nbsp; Param1&nbsp; length&nbsp;The&nbsp;number&nbsp;of&nbsp;files&nbsp;uploaded&nbsp; original&nbsp;The&nbsp;original&nbsp;file&nbsp;input&nbsp; uploads&nbsp;The&nbsp;array&nbsp;of&nbsp;objects&nbsp;that&nbsp;describe&nbsp;the&nbsp;files&nbsp;that&nbsp;have&nbsp;been&nbsp;uploaded&nbsp; </td> </tr>
+<td>translateFunction</td> <td>The function that will be used to translate text on the page <br/><br/><b>This argument</b><br/>  null    <br/><br/><b>Parameters</b><br/><em>param1</em> string [, param2 … [, …]]    <br/><br/><b>Param1</b><br/>   The string that will be translated. ‘{n}’ will be used in the string that is passed as placeholder for  variables that will occupy that space.<br/><br/>E.g. ‘You have uploaded {0} files but are only allowed to upload {1}’.<br/><br/>‘{0}’ will be replaced by the first argument after param1, and ‘{1}’ will be replaced by the second  argument after param1 to possibly give the result<br/><br/>‘You have selected 2 files but are only allowed to upload 1’ <br/><br/><b>Param2</b><br/>  The string or number to replace {0} with <br/><br/><b>ParamN</b><br/>  The string or number to replace {n-1} with  </td> </tr>
 <tr>
-<td>  onsingleuploadfail&nbsp; </td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onsingleuploadfail</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>  onsingleuploadfinish&nbsp; </td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onsingleuploadfinish</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>  onsingleuploadstart&nbsp; </td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onsingleuploadstart</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>  onuploadfail&nbsp; </td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onuploadfail</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>  onuploadfinish&nbsp; </td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onuploadfinish</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>onuploadprogress&nbsp;</td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
+<td>onuploadprogress</td> <td>Feature to support this has not yet been implemented </td> </tr>
 <tr>
-<td>onuploadstart&nbsp;</td> <td>Feature&nbsp;to&nbsp;support&nbsp;this&nbsp;has&nbsp;not&nbsp;yet&nbsp;been&nbsp;implemented&nbsp;</td> </tr>
-<tr>
-<td>  translateFunction&nbsp; </td> <td>The&nbsp;function&nbsp;that&nbsp;will&nbsp;be&nbsp;used&nbsp;to&nbsp;translate&nbsp;text&nbsp;on&nbsp;the&nbsp;page&nbsp;</td> </tr>
-<tr>
-<td></td> <td> &nbsp; This&nbsp;Argument&nbsp; null&nbsp; &nbsp; Parameters&nbsp; param1&nbsp;string&nbsp;[,&nbsp;param2&nbsp;…&nbsp;[,&nbsp;…]]&nbsp; &nbsp; Param1&nbsp;  The&nbsp;string&nbsp;that&nbsp;will&nbsp;be&nbsp;translated.&nbsp;‘{n}’&nbsp;will&nbsp;be&nbsp;used&nbsp;in&nbsp;the&nbsp;string&nbsp;that&nbsp;is&nbsp;passed&nbsp;as&nbsp;placeholder&nbsp;for&nbsp; variables&nbsp;that&nbsp;will&nbsp;occupy&nbsp;that&nbsp;space.&nbsp;  &nbsp; &nbsp;E.g.&nbsp;‘You&nbsp;have&nbsp;uploaded&nbsp;{0}&nbsp;files&nbsp;but&nbsp;are&nbsp;only&nbsp;allowed&nbsp;to&nbsp;upload&nbsp;{1}’.&nbsp; &nbsp;  ‘{0}’&nbsp;will&nbsp;be&nbsp;replaced&nbsp;by&nbsp;the&nbsp;first&nbsp;argument&nbsp;after&nbsp;param1,&nbsp;and&nbsp;‘{1}’&nbsp;will&nbsp;be&nbsp;replaced&nbsp;by&nbsp;the&nbsp;second&nbsp; argument&nbsp;after&nbsp;param1&nbsp;to&nbsp;possibly&nbsp;give&nbsp;the&nbsp;result&nbsp;  &nbsp; ‘You&nbsp;have&nbsp;selected&nbsp;2&nbsp;files&nbsp;but&nbsp;are&nbsp;only&nbsp;allowed&nbsp;to&nbsp;upload&nbsp;1’&nbsp; &nbsp; Param2&nbsp; The&nbsp;string&nbsp;or&nbsp;number&nbsp;to&nbsp;replace&nbsp;{0}&nbsp;with&nbsp; &nbsp; ParamN&nbsp; The&nbsp;string&nbsp;or&nbsp;number&nbsp;to&nbsp;replace&nbsp;{n-1}&nbsp;with&nbsp; </td> </tr>
 </tbody></table>
 
 **PHP**<br/>
@@ -157,9 +153,12 @@ foreach ($uploads as $postname => $data) {
 **FYI**<br/>
 What will happen when AjaxStream has initialised?
 
-If the attribute data-ajaxstreamid was 1, the id of the span would have looked like
+Your file input will become hidden, and will be replace by a span with the word 'upload'
 ```html
-<span id="AJSUploadBtn_1_myfile" class="AJSBtn" data-mandatory="1" data-ajaxstreamid="1">Upload</span>
+<input type=’file’ id=’myfile’ name=’myfile’ class=’AJSHidden’/>
+<input type=’hidden’ id=’AJS_myfile’ name=’AJS_myfile’ value=’[]’/>
+<span id="AJSUploadBtn_0_myfile" class="AJSBtn" 
+                         data-mandatory="1" data-ajaxstreamid="0">Upload</span>
 ```
 
 If the setting showPreviewOnForm was set to true, then that container would look more like
@@ -168,7 +167,8 @@ If the setting showPreviewOnForm was set to true, then that container would look
     <input type=’file’ id=’myfile’ name=’myfile’ class=’AJSHidden’/>
     <input type=’hidden’ id=’AJS_myfile’ name=’AJS_myfile’ value=’[]’/>
     <div id="AJSFormPrev_0_myfile" class="AJSFormPrev" style="height:nnn">
-        <span id="AJSUploadBtn_0_myfile" class="AJSBtn" data-mandatory="1" data-ajaxstreamid="0">Upload</span>
+        <span id="AJSUploadBtn_0_myfile" class="AJSBtn" 
+                         data-mandatory="1" data-ajaxstreamid="0">Upload</span>
     </div>
 </form>
 ```
