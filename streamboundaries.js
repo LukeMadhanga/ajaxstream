@@ -45,6 +45,7 @@
                 thumbWidth: '10%',
                 resizable: !1,
                 round: !0,
+                scale9Grid: !1,
                 width: '300px',
                 x: false,
                 y: false
@@ -84,7 +85,8 @@
                 if (settings.resizable && !$('.sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
                     var html = ('<style>.sb_thumbres {max-width:30px;max-height:30px;position:absolute;width:20%;' + 
-                                    'height:20%;}</style>') + (
+                                    'height:20%;}.sb_scale9 {position:absolute;background:#005400;}' + 
+                                    '.sb_scale9H{height:100%;width:1px;} .sb_scale9V {width: 100%;height:1px;}</style>') + (
                                 '<div id="sbtT" class="sb_thumbres" style="cursor:nw-resize;' + 
                                     'border-left:solid 2px #000;border-top:solid 2px #000;left:-1px;top:-1px;"></div>') + (
                                 '<div id="sbtTM" class="sb_thumbres" style="cursor:n-resize;' + 
@@ -102,6 +104,12 @@
                                     'border-left:solid 2px #000;border-bottom:solid 2px #000;left:-1px;bottom:-1px;"></div>') + (
                                 '<div id="sbtLM" class="sb_thumbres" style="cursor:w-resize;' + 
                                     'border-left:solid 2px #000;left:-1px;top:50%;margin-top: -15px;"></div>');
+                    if (T.s.scale9Grid) {
+                        html += ('<div class="sb_scale9 sb_scale9H" style="left:33%;"></div>') +
+                                ('<div class="sb_scale9 sb_scale9H" style="left:66%;"></div>') +
+                                ('<div class="sb_scale9 sb_scale9V" style="top:33%;"></div>') +
+                                ('<div class="sb_scale9 sb_scale9V" style="top:66%;"></div>');
+                    }
                     th.append(html);
                 }
                 if (settings.crosshair && ! $('#sb_cross', T).length) {

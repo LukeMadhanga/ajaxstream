@@ -4,6 +4,10 @@ $doupload = filter_input(INPUT_GET, 'newupload');
 if ($doupload) {
     cAjaxStream::processUpload();
 }
+$doexternal = filter_input(INPUT_GET, 'external');
+if ($doexternal) {
+    cAjaxStream::processExternalUpload();
+}
 
 class cAjaxStream {
 
@@ -71,6 +75,55 @@ class cAjaxStream {
         if($settings->islegacy) {
             self::handleLegacy($file);
         }
+    }
+    
+    static function processExternalUpload () {
+        $path = filter_input(INPUT_POST, 'filesrc');
+        self::$settings = new stdClass();
+        self::$settings->uploaddir = filter_input(INPUT_POST, 'uploaddir');
+        self::setUploadDir();
+        try {
+            $pathbits = explode('/', $path);
+            $filename = end($pathbits);
+            $destination = self::$settings->uploaddir . time() . '_' . $filename;
+            $relpath = substr($destination, strlen(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT')));
+            self::saveBase64($destination, $path);
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimetype = finfo_file($finfo, $destination);
+            $output = array(
+                'src' => $relpath,
+                'newsrc' => $relpath,
+                'name' => $filename,
+                'newupload' => false,
+                'mimetype' => $mimetype,
+            );
+            if (preg_match("/image\/.*/", $mimetype)) {
+                // The 'uploaded' file is an image
+                $size = getimagesize($destination);
+                $output['width'] = $output['croppedWidth'] = $output['resizedWidth'] = $size[0];
+                $output['height'] = $output['croppedHeight'] = $output['resizedHeight'] = $size[1];
+            }
+            self::ajaxExit('OK', $output);
+        } catch (Exception $ex) {
+            self::ajaxExit('Fail', "Unable to get external file: {$ex->getMessage()}");
+        }
+    }
+    
+    /**
+     * Send a JSON-encoded response from an Ajax call and exit
+     * @param $result string Message to return to the browser, or false to return data only
+     * @param $data mixed Any additional data to return
+     * @param $status int Value of HTTP status to be sent to the browser
+     */
+    private static function ajaxExit($result, $data = null, $status = 200) {
+        header('Content-Type:text/json; charset=utf-8');
+        header("HTTP/1.0 $status");
+        $response = array('result' => $result);
+        if (!empty($data)) {
+            $response['data'] = $data;
+        }
+        print json_encode($response);
+        exit;
     }
     
     /**

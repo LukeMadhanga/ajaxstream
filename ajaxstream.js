@@ -12,7 +12,7 @@
     canvtest = document.createElement('canvas'),
     canv = !!(canvtest.getContext && canvtest.getContext('2d')),
     defaults = {
-        accept: ['*'],
+        accept: ['.*'],
         allowFilters: !0,
         defaultCropHeightPer: .8,
         defaultCropWidthPer: .8,
@@ -44,6 +44,7 @@
         pathPrefix: '',
         quality: 1,
         readonly: !1,
+        scale9Grid: !0,
         showPreviewOnForm: !1,
         translateFunction: function(s) {
             for (var i = 1; i < arguments.length; i++) {
@@ -52,7 +53,7 @@
             }
             return s;
         },
-        uploadScript: "/upload.php?newupload=true",
+        uploadScript: "/upload.php",
         uploadTo: "uploads"
     },
     methods = {
@@ -150,7 +151,7 @@
                 orig = leg.clone();
                 orig.insertAfter(leg);
                 leg[0].id = null;
-                $('#AJSLegacyForm').prop({action: T.s.uploadScript}).append(leg);
+                $('#AJSLegacyForm').prop({action: T.s.uploadScript + '?newupload=true'}).append(leg);
                 orig.unbind('change', T.filechanged).change(T.filechanged);
                 T.event('legacyuploadstart', input, {original: T[0], stream: T, uploads: T.uploads});
                 elem('AJSLegacyForm').submit();
@@ -886,9 +887,7 @@
             }
             
             /**
-             * Display a preview of an upload file
-             * @param {object(plain)} cur The object that describes the file for which we are seeking a preview
-             * @param {boolean} gotoend
+             * Delete an upload from our list
              */
             T.deleteUpload = function () {
                 // Remove the file by re-indexing the uploads array
@@ -932,6 +931,10 @@
                 var ajsfile = fapi ? $('#AJSFile') : $('#AJSFileLegacy');
 
                 ajsfile.unbind('click').click(function() {
+                    var accept = T.s.accept;
+                    if (accept === '.*' || is_array(accept) && in_array(accept, '.*')) {
+                        accept = '*';
+                    }
                     var fa = {accept: T.s.accept};
                     if (T.s.maxFiles > 1) {
                         // Allow us to have multiple files
@@ -1263,14 +1266,51 @@
                 e.preventDefault();
                 if ($(e.target).closest('#AJS').length) {
                     // Only accept drops inside the drop zone
-                    var files = e.dataTransfer.files;
+                    var dt = e.dataTransfer,
+                    files = dt.files;
                     for (var i = 0; i < files.length; i++) {
                         if (!files[i].type.match(T.s.accept)) {
                             files[i] = null;
                         }
                     }
+                    if (!files.length && canv) {
+                        var filesrc = dt.getData('url');
+                        if (!filesrc) {
+                            filesrc = dt.getData('text/plain');
+                            if (!filesrc) {
+                                filesrc = dt.getData('text/uri-list');
+                                if (!filesrc) {
+                                    // We have tried all that we can to get this url but we can't. Abort mission
+                                    return;
+                                }
+                            }
+                        }
+                        $('#AJSLoading').removeClass(AJSHidden);
+                        $.ajax({
+                            url: T.s.uploadScript + '?external=true',
+                            type: 'post',
+                            dataType: 'json',
+                            data: {filesrc: filesrc, uploaddir: T.s.uploadTo}
+                        }).done(function (e) {
+//                            T.toload = 1;
+                            console.log(e);
+                            if (e.result === 'OK') {
+                                $('#AJSLoading').addClass(AJSHidden);
+                            } else {
+                                $('#AJSLoading').addClass(AJSHidden);
+                                streamConfirm(tx('Error'), {Close: ef},
+                                    tx('There was an error processing the external file you dropped'), {nocancel: true});
+                            }
+                        }).fail(function () {
+                            $('#AJSLoading').addClass(AJSHidden);
+                            streamConfirm(tx('Error'), {Close: ef},
+                                tx('There was an error processing the external file you dropped'), {nocancel: true});
+                        });
+                        $('#AJSDropZone').addClass(AJSHidden);
+                        return;
+                    }
                     $('#AJSDropZone').addClass(AJSHidden);
-                    T.addingmore = !0;
+                    T.addingmore = true;
                     T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: files}});
                 }
             }
@@ -1441,6 +1481,7 @@
                         bg: 'none',
                         thumbBg: 'none',
                         round: !1,
+                        scale9Grid: T.s.scale9Grid,
                         onUpdate: function(e) {
                             positionRBG(e);
                         }
