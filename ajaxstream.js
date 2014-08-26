@@ -1274,7 +1274,19 @@
                         }
                     }
                     if (!files.length && canv) {
-                        var filesrc = dt.getData('url');
+                        // We may have a uri-list
+                        var nlen = T.uploads.length + 1;
+                        if (nlen > T.s.maxFiles) {
+                            // We have uploaded more files than we can handle
+                            streamConfirm(tx('Maximum files exceeded'), {Close: ef},
+                                tx('You have selected {0} files but are only permitted to upload {1}', nlen, T.s.maxFiles),
+                                        {nocancel: !0});
+                            $('#AJSDropZone').addClass(AJSHidden);
+                            return;
+                        }
+                        toggleDragPaste();
+                        var tdp = function () {toggleDragPaste(!0);},
+                        filesrc = dt.getData('url');
                         if (!filesrc) {
                             filesrc = dt.getData('text/plain');
                             if (!filesrc) {
@@ -1286,31 +1298,60 @@
                             }
                         }
                         $('#AJSLoading').removeClass(AJSHidden);
+                        T.event('filesloading', null, {original: T[0], toload: T.toload, loaded: T.loaded, uploads: T.uploads, 
+                            stream: T});
                         $.ajax({
                             url: T.s.uploadScript + '?external=true',
                             type: 'post',
                             dataType: 'json',
                             data: {filesrc: filesrc, uploaddir: T.s.uploadTo}
                         }).done(function (e) {
-//                            T.toload = 1;
-                            console.log(e);
                             if (e.result === 'OK') {
-                                $('#AJSLoading').addClass(AJSHidden);
+                                // The file has been successfully 'uploaded' to the server, add it to the upload list
+                                tdp();
+                                var len = T.uploads.length;
+                                e.data.index = len;
+                                T.uploads[len] = e.data;
+                                T.currentlength++;
+                                $('#AJSFile,#AJSFileLegacy').val(null);
+                                $('#AJSUploadSection').addClass(AJSHidden);
+                                $('#AJSImagePreview').removeClass(AJSHidden);
+                                T.toggleLR();
+                                T.event('filesloaded', null, {loaded: T.loaded, original: T[0], uploads: T.uploads, stream: T});
+                                T.changing = !1;
+                                T.toload = T.loaded = 0;
+                                if (e.data.mimetype.match('image/*')) {
+                                    var img = new Image();
+                                    img.onload = function () {
+                                        this.imageloaded = !0;
+                                        ZZ.images['AJSIMG_' + T.id + len] = img;
+                                        T.displayUpload(null, !0);
+                                    };
+                                    img.onerror = function () {
+                                        // The upload is corrupt, remove from the array
+                                        T.uploads.splice(len, 1);
+                                        streamConfirm(tx('Error'), {Close: tdp},
+                                            tx('There was an error processing the external file you dropped'), {nocancel: !0});
+                                    };
+                                    img.src = e.data.src + '?cachekill=' + (new Date().getTime());
+                                } else {
+                                    T.displayUpload(null, !0);
+                                }
                             } else {
-                                $('#AJSLoading').addClass(AJSHidden);
-                                streamConfirm(tx('Error'), {Close: ef},
-                                    tx('There was an error processing the external file you dropped'), {nocancel: true});
+                                streamConfirm(tx('Error'), {Close: tdp},
+                                    tx('There was an error processing the external file you dropped'), {nocancel: !0});
                             }
+                            $('#AJSLoading').addClass(AJSHidden);
                         }).fail(function () {
                             $('#AJSLoading').addClass(AJSHidden);
-                            streamConfirm(tx('Error'), {Close: ef},
+                            streamConfirm(tx('Error'), {Close: tdp},
                                 tx('There was an error processing the external file you dropped'), {nocancel: true});
                         });
                         $('#AJSDropZone').addClass(AJSHidden);
                         return;
                     }
                     $('#AJSDropZone').addClass(AJSHidden);
-                    T.addingmore = true;
+                    T.addingmore = !1;
                     T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: files}});
                 }
             }

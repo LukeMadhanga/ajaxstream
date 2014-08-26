@@ -77,6 +77,9 @@ class cAjaxStream {
         }
     }
     
+    /**
+     * Retrieve a file from another server, save it and pretend that it was an upload from our system
+     */
     static function processExternalUpload () {
         $path = filter_input(INPUT_POST, 'filesrc');
         self::$settings = new stdClass();
@@ -92,10 +95,12 @@ class cAjaxStream {
             $mimetype = finfo_file($finfo, $destination);
             $output = array(
                 'src' => $relpath,
-                'newsrc' => $relpath,
+                'newsrc' => null,
                 'name' => $filename,
-                'newupload' => false,
+                'newupload' => true,
                 'mimetype' => $mimetype,
+                'islegacy' => false,
+                'cropdata' => array()
             );
             if (preg_match("/image\/.*/", $mimetype)) {
                 // The 'uploaded' file is an image
