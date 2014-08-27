@@ -87,7 +87,7 @@ class cAjaxStream {
         self::setUploadDir();
         try {
             $pathbits = explode('/', $path);
-            $filename = end($pathbits);
+            $filename = substr(preg_replace('/[^a-z0-9\_\.]/', '_', strtolower(end($pathbits))), 0, 100);
             $destination = self::$settings->uploaddir . time() . '_' . $filename;
             $relpath = substr($destination, strlen(filter_input(INPUT_SERVER, 'DOCUMENT_ROOT')));
             self::saveBase64($destination, $path);
