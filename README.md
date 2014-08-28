@@ -60,6 +60,10 @@ $("#myfile").ajaxStream({opt2: value2});
 <td>  iconPreviewHeight  </td> <td>int (px) </td> <td>200 </td> <td>  ✓  </td> <td>   If the setting showPreviewOnForm is   set to true, a preview on the main  upload form will be shown. What height  should this preview be?  </td> </tr>
 <tr>
 <td>  iconPreviewWidth  </td> <td>int (px) </td> <td>200 </td> <td>  ✓  </td> <td>   If the setting showPreviewOnForm is   set to true, a preview on the main  upload form will be shown. What width  should this preview be?  </td> </tr>
+<tr>
+<td>readonly </td> <td>boolean </td> <td>false </td> <td>  ✓  </td> <td> True if you do not want the user user editing the uploaded file  </td> </tr>
+<tr>
+<td>scale9Grid </td> <td>boolean </td> <td>true </td> <td>  ×  </td> <td> True to display a scale-9-grid when cropping an image  </td> </tr>
 </tbody></table>
 
 
