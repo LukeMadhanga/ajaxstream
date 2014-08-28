@@ -18,7 +18,7 @@ switch ($action) {
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
     <head>
-        <title>Ajax Stream v1</title>
+        <title>Ajax Stream v1.1.41</title>
         <script type='text/javascript' src='//code.jquery.com/jquery-latest.min.js'></script>
         <script type='text/javascript' src='ajaxstream.min.js'></script>
         <script type='text/javascript' src='streamconfirm.min.js'></script>
@@ -28,7 +28,7 @@ switch ($action) {
         <style>
             body {margin: 0;font-family: 'Open Sans', sans-serif;font-size: 12px;}
             #title {font-size: 18px;font-family: 'Josefin Sans', sans-serif;}
-            #titlecontainer {padding: 20px;width: 100%; height: 100%;border-bottom: solid 4px #9797E4;}
+            #titlecontainer {padding: 20px;width: 100%; height: 100%;border-bottom: solid 4px #9797E4;box-sizing: border-box;}
             input[type=submit] {border: none;outline: none;}
         </style>
         <script type='text/javascript'>
@@ -41,7 +41,7 @@ switch ($action) {
     <body>
         <div id='holder'>
         <div id='titlecontainer'>
-            <a id='title'><strong>Ajax</strong>Stream v1.1.1</a>
+            <a id='title'><strong>Ajax</strong>Stream v1.1.41</a>
         </div>
         <form action='/?q=upload' method='post'>
             <input type="file" id="file">

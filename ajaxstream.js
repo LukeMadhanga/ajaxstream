@@ -935,7 +935,7 @@
                     if (accept === '.*' || is_array(accept) && in_array(accept, '.*')) {
                         accept = '*';
                     }
-                    var fa = {accept: T.s.accept};
+                    var fa = {accept: accept};
                     if (T.s.maxFiles > 1) {
                         // Allow us to have multiple files
                         fa['multiple'] = !0;
@@ -1240,7 +1240,7 @@
             function dragOver (e) {
 
                 var dt = e.dataTransfer;
-                if (!in_array(dt.types, 'Files')) {
+                if (!in_array(dt.types, 'Files') && !in_array(dt.types, 'text/uri-list')) {
                     // The thing we are hovering with IS NOT a file, return.
                     return;
                 };
@@ -1876,6 +1876,15 @@
      */
     function is_object(variable) {
         return is_a('Object', variable);
+    }
+    
+    /**
+     * Determine whether a variable is an array
+     * @param {Mixed} variable The variable to test
+     * @returns {Boolean} True if the variable is an array
+     */
+    function is_array(variable) {
+        return is_a('Array', variable);
     }
 
     /**

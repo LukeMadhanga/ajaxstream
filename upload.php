@@ -202,7 +202,9 @@ class cAjaxStream {
             $binary = base64_decode(substr($src, $pos + $strlen));
         } else {
             $pos = strpos($src, '?cachekill=');
-            $src = substr($src, 0, $pos);
+            if ($pos) {
+                $src = substr($src, 0, $pos);
+            }
             $binary = file_get_contents($src);
         }
         return $binary;
@@ -263,7 +265,7 @@ class cAjaxStream {
             // The error code is non-zero, i.e. there has been error
             $result = json_encode(array('moved' => false, 'error' => self::getErrorMessage($file->error)));
         } else {
-            self::setDestination();
+            self::setUploadDir();
             if(self::$cleandir) {
                 self::cleanDir();
             }
@@ -360,7 +362,7 @@ JS;
      * Set the destination path for the uploaded file
      * @return string The destination path
      */
-    private static function setDestination() {
+    private static function setUploadDir() {
         $uploaddir = self::$settings->uploaddir;
         if(!preg_match("/\/$/", $uploaddir)) {
             // The upload dir requires a '/' at the end
