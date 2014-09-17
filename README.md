@@ -1,3 +1,5 @@
+[![endorse](https://api.coderwall.com/lukemadhanga/endorsecount.png)](https://coderwall.com/lukemadhanga)
+
 #AjaxStream
 #####v1.1
 
