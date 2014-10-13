@@ -130,14 +130,18 @@ class cAjaxStream {
         print json_encode($response);
         exit;
     }
-    
+     
     /**
-     * Get 
+     * Get uploaded files
      * @param array $postkeys A list of post keys that should have the upload data. If left empty, the function will iterate through
-     *  all of the POST variables looking for any that begin with 'AJS_'
+     *  all of the POST variables looking for any that begin with 'ajaxstream_'. You can also <b>pass one post key as a string</b>
      * @return array An array of arrays keyed by each of the post keys
      */
     static function getUploads($postkeys = array()) {
+        if (is_string($postkeys) && $postkeys) {
+            // Allow us to pass one parameter as a string, or multiple as an array
+            $postkeys = array($postkeys);
+        }
         $values = array();
         $uploads = array();
         if (empty($postkeys)) {
@@ -158,10 +162,13 @@ class cAjaxStream {
                 $value = $values[$key];
             }
             $data = json_decode($value);
-            foreach ($data as $u) {
-                $u->previousfname = null;
-                $u->inputName = substr($key, 4);
-                $uploads[$key][] = $u;
+            if ($data) {
+                // We may not always have data
+                foreach ($data as $u) {
+                    $u->previousfname = null;
+                    $u->inputName = substr($key, 4);
+                    $uploads[$key][] = $u;
+                }
             }
         }
         return $uploads;
