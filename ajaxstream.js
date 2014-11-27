@@ -497,13 +497,31 @@
                 }
                 var width = img.width,
                 height = img.height,
-                calculated = calcWidthHeight(width, height, T.s.maxWidth, T.s.maxHeight);
+                calculated = calcWidthHeight(width, height, T.s.maxWidth, T.s.maxHeight),
+                ctx = canvas.getContext("2d"),
+                thing = img,
+                multiplierx = 1,
+                multipliery = 1;
                 width = calculated.width;
                 height = calculated.height;
                 cur.croppedWidth = cur.resizedWidth = canvas.width = width;
                 cur.croppedHeight = cur.resizedHeight = canvas.height = height;
-                var ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0, width, height);
+                if (img.width / width > 2 || img.height / height > 2) {
+                    // The original image is more than twice the size of the max
+                    multiplierx = 0.5;
+                    multipliery = 0.5;
+                    var oc = document.createElement('canvas'),
+                    occtx = oc.getContext('2d');
+                    thing = oc;
+                    oc.width = img.width * multiplierx;
+                    oc.height = img.height * multipliery;
+                    occtx.drawImage(img, 0, 0, oc.width, oc.height);
+                    // Another pass
+                    occtx.drawImage(oc, 0, 0, oc.width * multiplierx, oc.height * multipliery);
+                    ctx.drawImage(oc, 0, 0, oc.width * multiplierx, oc.height * multipliery, 0, 0, canvas.width,   canvas.height);
+                } else {
+                    ctx.drawImage(thing, 0, 0, width, height);
+                }
                 if (cur.newupload || T.existingedited) {
                     // Only recalculate the base64 if something has happened to the file
                     cur.base64 = canvas.toDataURL("image/jpeg", T.s.quality);
