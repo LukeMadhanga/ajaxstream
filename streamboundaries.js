@@ -1,19 +1,16 @@
-(function($, win, count) {
+(function($, window, count, Math) {
 
     /**
      * A string to access objects with a property or method beginning with 'thumb'. This will allow it to be compressed better
      * @type String
      */
-    var thumb = 'thumb',
-    width = 'width',
-    height = 'height',
-    sbid = 'data-streamboundariesid',
-    cache = {},
+    var cache = {},
     methods = {
         init: function(opts) {
             var T = this;
-            if (!T.length) {
-                // There is no object, return
+            if (!T.length || T.attr('data-streamboundariesid')) {
+                // There is no object or
+                // We have already been initialised
                 return T;
             }
             if (T.length > 1) {
@@ -23,10 +20,9 @@
                 });
                 return T;
             }
-            var prop = {},
-            ef = function() {};
+            var ef = function() {};
             T.s = $.extend({
-                aspectRatio: false,
+                aspectRatio: !1,
                 autoRotate: !0,
                 bg: '#DEDEDE',
                 centerThumb: !0,
@@ -34,29 +30,33 @@
                 bounds: !1,
                 height: '5px',
                 isViewport: !1,
+                lockAspectRatio: !1,
                 minResizeHeight: '20px',
                 minResizeWidth: '20px',
+                onBeforeUpdate: ef,
                 onFinish: ef,
                 onUpdate: ef,
                 orientation: 'x',
-                thumb: T.find('*:first'),
-                thumbBg: '#333',
-                thumbHeight: '5px',
-                thumbWidth: '10%',
                 resizable: !1,
                 round: !0,
                 scale9Grid: !1,
+                scaleX: !0,
+                scaleY: !0,
+                thumb: T.find('*:first'),
+                thumbBg: '#333',
+                thumbBorder: 'solid thin #005400',
+                thumbHeight: '5px',
+                thumbWidth: '10%',
                 width: '300px',
-                x: false,
-                y: false
+                x: !1,
+                y: !1
             }, opts);
             T.offsetX = 0;
             T.offsetY = 0;
             T.autobounds = !1;
             T.c = ++count;
             T.isresize;
-            prop[sbid] = T.c;
-            T.attr(prop);
+            T.attr({'data-streamboundariesid': T.c});
             
             /**
              * Render the thumb and track according to the parameters that are passed to it
@@ -68,19 +68,19 @@
                 th = settings.thumb,
                 dorotate = settings.orientation === 'y' && settings.autoRotate,
                 tcss = {
-                    width: settings[dorotate ? height : width],
-                    height: settings[dorotate ? width : height],
+                    width: settings[dorotate ? 'height' : 'width'],
+                    height: settings[dorotate ? 'width' : 'height'],
                     background: settings.bg,
                     position: 'relative'
                 },
                 thcss = {
-                    width: settings[thumb + (dorotate ? 'Height' : 'Width')],
-                    height: settings[thumb + (dorotate ? 'Width' : 'Height')],
-                    background: settings.thumb + 'Bg',
+                    width: settings['thumb' + (dorotate ? 'Height' : 'Width')],
+                    height: settings['thumb' + (dorotate ? 'Width' : 'Height')],
+                    background: settings.thumbBg,
                     position: 'relative',
                     'box-sizing': 'border-box',
                     cursor: 'pointer',
-                    'border': 'solid thin #005400'
+                    border: settings.thumbBorder
                 };
                 if (settings.resizable && !$('.sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
@@ -139,6 +139,7 @@
                 T.positionData = {
                     bounds: settings.bounds,
                     jqueryEvent: null,
+                    lastMove: null,
                     originalEvent: null,
                     px: ax / (settings.bounds.right - settings.bounds.left),
                     py: ay / (settings.bounds.bottom - settings.bounds.top),
@@ -236,6 +237,10 @@
             T.wmm = function(e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
+                if (T.s.onUpdate.call(T, T.positionData) === false) {
+                    // The caller didn't want us to continue so don't
+                    return;
+                }
                 var xpos = e.clientX - T.offsetX,
                 ypos = e.clientY - T.offsetY,
                 axpos = 0,
@@ -285,7 +290,7 @@
                         orientY = !0;
                         orientX = twoD = !1;
                     }
-                    if (orientX || twoD) {
+                    if ((orientX || twoD) && settings.scaleX) {
                         var nw = (axpos + xpos) - (tr.left - r.left),
                         xcss = {};
                         if (lresize) {
@@ -310,7 +315,7 @@
                                 nw = settings.minResizeWidth;
                             }
                         }
-                        if (e.shiftKey && twoD) {
+                        if (e.shiftKey && twoD || settings.lockAspectRatio) {
                             if (nw / ar + (tr.top - r.top) > r.height) {
                                 // If by doing an aspect ratio scale we become taller than the bounds, reset our width
                                 nw = (r.height - (tr.top - r.top)) * ar;
@@ -319,10 +324,10 @@
                         xcss.width = doround ? Math.round(nw) : nw;
                         th.css(xcss);
                     }
-                    if (orientY || twoD) {
+                    if ((orientY || twoD) && settings.scaleY) {
                         var nh = (aypos + ypos) - (tr.top - r.top),
                         ycss = {};
-                        if (e.shiftKey && twoD) {
+                        if (e.shiftKey && twoD || settings.lockAspectRatio) {
                             nh = nw / ar;
                         }
                         if (tresize) {
@@ -414,12 +419,16 @@
                     y: ay,
                     y2: ay + nrh
                 };
-                settings.onUpdate.call(T, T.positionData);
             };
+            
             T.find('div').mousedown(function(e) {
                 // Prevent the default dragging behaviour
                 if (e.which === 3) {
                     // This was a right click
+                    return;
+                }
+                if (T.s.onBeforeUpdate.call(T, T.positionData) === false) {
+                    // The caller didn't want us to continue
                     return;
                 }
                 e.preventDefault();
@@ -428,7 +437,7 @@
                 T.isresize = $(e.target).hasClass('sb_thumbres');
                 reposition(T.rect, T.thumbRect);
                 T.startDim = {width: T.thumbRect.width, height: T.thumbRect.height};
-                var w = $(win);
+                var w = $(window);
                 if (T.isresize) {
                     T.curTarget = e.target;
                     T.offsetX = e.clientX;
@@ -439,7 +448,7 @@
                     T.offsetY = off.y;
                 }
                 w.mousemove(T.wmm);
-                w.one('mouseup', function(ev) {
+                w.one('mouseup', function() {
                     // Only allow the mouseup event to fire once
                     w.unbind('mousemove', T.wmm);
                     if (T.s.isViewport) {
@@ -513,7 +522,7 @@
      * @returns {object(jQuery)} Either the jQuery object from the cache, or elem if a cache entry does not exist
      */
     function getThis(elem) {
-        var id = elem.attr(sbid);
+        var id = elem.attr('data-streamboundariesid');
         return id ? cache[id] : elem;
     }
 
@@ -537,5 +546,23 @@
             $.error(['The method ', methodOrOpts, ' does not exist'].join(''));
         }
     };
+    
+    $.streamBoundaries = {
+        /**
+         * Clear the cache of streamboundaries
+         */
+        clearCache: function () {
+            cache = [];
+        },
+        /**
+         * Unset the mouse move function from all instances
+         */
+        unsetMouseMove: function () {
+            for (var x in cache) {
+                var T = cache[x];
+                $(window).unbind('mousemove', T.wmm);
+            }
+        }
+    };
 
-})(jQuery, this, 0);
+})(jQuery, this, 0, Math);
