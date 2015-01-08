@@ -45,8 +45,10 @@
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbBorder: 'solid thin #005400',
+                thumbBorderRadius: 0,
                 thumbHeight: '5px',
                 thumbWidth: '10%',
+                trackBorderRadius: 0,
                 width: '300px',
                 x: !1,
                 y: !1
@@ -71,12 +73,14 @@
                     width: settings[dorotate ? 'height' : 'width'],
                     height: settings[dorotate ? 'width' : 'height'],
                     background: settings.bg,
+                    'border-radius': settings.trackBorderRadius,
                     position: 'relative'
                 },
                 thcss = {
                     width: settings['thumb' + (dorotate ? 'Height' : 'Width')],
                     height: settings['thumb' + (dorotate ? 'Width' : 'Height')],
                     background: settings.thumbBg,
+                    'border-radius': settings.thumbBorderRadius,
                     position: 'relative',
                     'box-sizing': 'border-box',
                     cursor: 'pointer',
@@ -86,13 +90,13 @@
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
                     var html = ('<style>.sb_thumbres {max-width:30px;max-height:30px;position:absolute;width:20%;' + 
                                     'height:20%;}.sb_scale9 {position:absolute;background:#005400;}' + 
-                                    '.sb_scale9H{height:100%;width:1px;} .sb_scale9V {width: 100%;height:1px;}</style>') + (
+                                    '.sb_scale9H{height:100%;width:1px;} .sb_scale9V {width: 100%;height:1px;}</style>') + /*(
                                 '<div id="sbtT" class="sb_thumbres" style="cursor:nw-resize;' + 
-                                    'border-left:solid 2px #000;border-top:solid 2px #000;left:-1px;top:-1px;"></div>') + (
+                                    'border-left:solid 2px #000;border-top:solid 2px #000;left:-1px;top:-1px;"></div>') +*/ (
                                 '<div id="sbtTM" class="sb_thumbres" style="cursor:n-resize;' + 
-                                    'border-top:solid 2px #000;left:50%;top:-1px;margin-left: -15px;"></div>') + (
+                                    'border-top:solid 2px #000;left:50%;top:-1px;margin-left: -15px;"></div>') + /*(
                                 '<div id="sbtR" class="sb_thumbres" style="cursor:ne-resize;' + 
-                                    'border-right:solid 2px #000;border-top:solid 2px #000;right:-1px;top:-1px;"></div>') + (
+                                    'border-right:solid 2px #000;border-top:solid 2px #000;right:-1px;top:-1px;"></div>') +*/ (
                                 '<div id="sbtRM" class="sb_thumbres" style="cursor:e-resize;' + 
                                     'border-right:solid 2px #000;right:-1px;top:50%;margin-top: -15px;"></div>') + (
                                 '<div id="sbtB" class="sb_thumbres" style="width:20%;height:20%;cursor:se-resize;' + 

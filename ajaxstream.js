@@ -348,7 +348,7 @@
                     var gotoend = T.changing === !1;
                     if (T.changing === !1) {
                         // Call the filechanged event
-                        T.event('filechanged', target, {original: T[0], newfile: T.uploads.index, oldfile: old, 
+                        T.event('filechanged', target, {original: T[0], newfile: T.uploads[index], oldfile: old, 
                                                                                             uploads: T.uploads, stream: T});
                     }
                     T.event('filesloaded', target, {loaded: T.loaded, original: T[0], uploads: T.uploads, stream: T});
@@ -400,7 +400,7 @@
             };
 
             /**
-             * Draw the uploaded image onto a canvas (or display it using an &lt;img/&gt; tag if the file api is not supported)
+             * Draw the uploaded image onto a canvas (or display it using an &lt;img/&gt; element if the file api is not supported)
              * @param {object(plain)} cur The object that represents the current file that we are working with
              * @param {string(path)} src The alternate src attribute if we are displaying the icon for a file (i.e. it is not an image)
              */
@@ -612,12 +612,12 @@
                     occtx = oc.getContext('2d');
                     oc.width = cur.croppedWidth;
                     oc.height = cur.croppedHeight;
-                    occtx.drawImage(img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
+                    T.multipass(oc, occtx, img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
                     canvas.width = cur.canvasWidth;
                     canvas.height = cur.canvasHeight;
-                    ctx.drawImage(oc, cz.x, cz.y, cz.width, cz.height);
+                    T.multipass(canvas, ctx, oc, cz.x, cz.y, cz.width, cz.height);
                 } else {
-                    ctx.drawImage(img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
+                    T.multipass(canvas, ctx, img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
                 }
                 cur.newsrc = canvas.toDataURL(cur.mimetype, T.s.quality);
                 $('#AJSLoading').addClass(AJSHidden);
@@ -1062,7 +1062,7 @@
                 var $ajs = $('#AJS');
                 $ajs.show();
                 $ajs.css({marginTop: -($ajs.height() / 2), marginLeft: -($ajs.width() / 2)});
-                T.displayUpload(T.uploads.index);
+                T.displayUpload(T.uploads[index]);
                 $('#AJSMain > div').addClass(AJSHidden);
                 $('#AJSImagePreview').removeClass(AJSHidden);
                 T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
@@ -1846,10 +1846,12 @@
                         onUpdate: updateCanvasZoom,
                         thumbBg: '#444',
                         thumbBorder: 'none',
+                        thumbBorderRadius: 3,
                         thumbHeight: 8,
-                        thumbWidth: '25%',
+                        thumbWidth: '15%',
+                        trackBorderRadius: 3,
                         width: '100%',
-                        x: '75%'
+                        x: '85%'
                     });
                 }
                 T.initBinding();
@@ -1867,7 +1869,19 @@
                 // The user has passed us a string, assume it is JSON data
                 data = json_decode(data);
             }
-            T.uploads = data ? data : [];
+            T.uploads = data ? object_to_array(data) : [];
+            // Go through each of the uploads, making sure we have a cached an image for this upload
+            for (var i = 0; i < T.uploads.length; i++) {
+                if (T.uploads[0].mimetype.match('image/*')) {
+                    // This upload is indeed an image
+                    var img = new Image();
+                    img.onload = function () {
+                        this.imageloaded = !0;
+                    };
+                    img.src = T.uploads[0].src + '?cachekill=' + (new Date().getTime());
+                    ZZ.images['AJSIMG_' + T.id + i] = img;
+                }
+            }
             T.currentlength = T.uploads.length;
             T.toload = T.loaded = T.currentupload = 0;
             if (redraw) {
@@ -2081,8 +2095,8 @@
      */
     function drawEditIcons() {
          return cHE.getDiv(
-         cHE.getSpan(null, null, 'AJSEIcon icon-transform', {'data-for': 'AJSWHAR', 'title': tx('Crop Image')}) +
-         cHE.getSpan(null, null, 'AJSEIcon icon-flip-to-front', {'data-for': 'AJSRCan', 'title': tx('Resize canvas')}),
+         cHE.getSpan(null, null, 'AJSEIcon asicons-transform', {'data-for': 'AJSWHAR', 'title': tx('Crop Image')}) +
+         cHE.getSpan(null, null, 'AJSEIcon asicons-flip-to-front', {'data-for': 'AJSRCan', 'title': tx('Resize canvas')}),
          'AJSEditIcons');
     }
 
@@ -2125,7 +2139,7 @@
                 cHE.getDiv(
                     cHE.getSpan(tx('ASPECT RATIO')) + 
                     cHE.getInput('AJSSAR') + 
-                    cHE.getSpan(null, 'AJSLockAR', 'AJSLock icon-lock-open2'), 
+                    cHE.getSpan(null, 'AJSLockAR', 'AJSLock asicons-lock-open2'), 
                 null, 'AJSSInfo'), 
         'AJSWHAR', 'AJSEDivs');
     }
