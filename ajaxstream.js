@@ -1454,10 +1454,10 @@
                     h *= (oh / rih);
                     // Get the scaled width and height
                     var calculated = calcWidthHeight(w, h, T.s.maxWidth, T.s.maxHeight),
-                    vpdims = getViewportDimensions(upload, calculated);
-                    scale = mh / constants.VP_MAX_HEIGHT;
+                    vpdims = getViewportDimensions(upload, calculated),
+                    scaledown = mh / constants.VP_MAX_HEIGHT;
                     mh = constants.VP_MAX_HEIGHT;
-                    mw /= scale;
+                    mw /= scaledown;
                     croppedh = vpdims.thumbHeight;
                     croppedw = vpdims.thumbWidth;
                     if (croppedh < mh) {
@@ -1469,8 +1469,9 @@
                         mw = cw;
                         mh = mw / ar;
                     }
+                    scale = vpdims.scale;
                 }
-                return {width: croppedw - mw, height: croppedh - mh, minWidth: mw, minHeight: mh, scale: vpdims.scale};
+                return {width: croppedw - mw, height: croppedh - mh, minWidth: mw, minHeight: mh, scale: scale};
             }
 
             /**
