@@ -279,9 +279,9 @@
 #AJSLoading {
     padding: 12px;
     border-radius: 2px;
+    box-shadow: 0px 0px 6px #F00;
     background: #000;
     position: absolute;
-    opacity: 0.5;
     top: 50%;
     left: 50%;
     z-index: 250;
@@ -432,6 +432,14 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {
     color: #FFF;
     cursor: pointer;
 }
+.AJSEIcon {
+    width: 36px;
+    height: 36px;
+    display: inline-block;
+    box-sizing: border-box;
+    line-height: 15px !important;
+    vertical-align: middle;
+}
 #AJSIBtns > span:hover, .AJSEIcon:hover {
     background: #242424;
 }
@@ -537,6 +545,7 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {
 }
 .EIconActive {
     background: #121212;
+    border: solid thin #555;
 }
 
 .AJSFP {

@@ -612,12 +612,14 @@
                     occtx = oc.getContext('2d');
                     oc.width = cur.croppedWidth;
                     oc.height = cur.croppedHeight;
-                    T.multipass(oc, occtx, img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
+                    occtx.drawImage(img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
+//                    T.multipass(oc, occtx, img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
                     canvas.width = cur.canvasWidth;
                     canvas.height = cur.canvasHeight;
-                    T.multipass(canvas, ctx, oc, cz.x, cz.y, cz.width, cz.height);
+                    ctx.drawImage(oc, cz.x, cz.y, cz.width, cz.height);
+//                    T.multipass(canvas, ctx, oc, cz.x, cz.y, cz.width, cz.height);
                 } else {
-                    T.multipass(canvas, ctx, img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
+                    ctx.drawImage(img, dimensions.x, dimensions.y, dimensions.outwidth, dimensions.outheight);
                 }
                 cur.newsrc = canvas.toDataURL(cur.mimetype, T.s.quality);
                 $('#AJSLoading').addClass(AJSHidden);
@@ -768,8 +770,7 @@
                         w = pd.x2 - pd.x,
                         h = pd.y2 - pd.y,
                         ow = upload.width,
-                        oh = upload.height,
-                        thumbheight = cz ? cz.height : upload.croppedHeight;
+                        oh = upload.height;
                         w *= (ow / riw);
                         h *= (oh / rih);
                         // Get the scaled width and height
@@ -784,12 +785,6 @@
                         elem('AJSCW').value = canvaswidth ? canvaswidth : upload.croppedWidth;
                         elem('AJSCH').value = canvasheight ? canvasheight : upload.croppedHeight;
                         // Reposition the viewport
-//                        $('#AJSRCVp').streamBoundaries('updateOpts', {
-//                            height: canvasheight ? canvasheight : calculated.height,
-//                            thumbHeight: thumbheight,
-//                            thumbWidth: cz ? cz.width : upload.croppedWidth,
-//                            width: canvaswidth ? canvaswidth : calculated.width
-//                        });
                         $('#AJSRCVp').streamBoundaries('updateOpts', {
                             height: vpdims.height,
                             thumbHeight: vpdims.thumbHeight,
@@ -804,20 +799,9 @@
                             var ajscz = $('#AJSCZ').streamBoundaries('reposition', {x: (scalePercent * 100) + '%'});
                             updateCanvasZoom.call(ajscz, ajscz.positionData);
                         }
-//                        // @TODO Solve better
-//                        // Tall images taller than 420px cannot be viewed in the edit viewport. Make it scrollable
-//                        if (thumbheight > constants.VP_MAX_HEIGHT) {
-//                            $('#AJSRC').css({overflow: 'auto'});
-//                            $('#AJSRCVp').css({maxHeight: 'initial'});
-//                        } else {
-//                            $('#AJSRC').css({ overflow: 'hidden'});
-//                            $('#AJSRCVp').css({maxHeight: '100%'});
-//                        }
                         centerCanvasResizer(canvasheight ? canvasheight : calculated.height);
                         break;
                     case 'AJSWHAR':
-//                        $('#AJSRC').css({ overflow: 'hidden'});
-//                        $('#AJSRCVp').css({maxHeight: '100%'});
                         ajsrc.addClass(AJSHidden);
                         ajsri.removeClass(AJSHidden);
                 }
@@ -1440,7 +1424,7 @@
                 }
                 
                 // We now need to make sure that the image is scaled down if the canvas is too tall
-                if (croppedh > constants.VP_MAX_HEIGHT) {
+                if (ch > constants.VP_MAX_HEIGHT) {
                     var pd = $('#AJSRITrack').streamBoundaries('getPositionData'),
                     ri = $('#AJSResImg'),
                     rivisible = ri.is(':visible'),
@@ -1466,8 +1450,13 @@
                     }
                     if (mw < cw) {
                         // The minimum width is too small
-                        mw = cw;
+                        mw = cw / scaledown;
                         mh = mw / ar;
+                    }
+                    if (mh < ch) {
+                        // The minimum height is too small
+                        mh = ch / scaledown;
+                        mw = mh * ar;
                     }
                     scale = vpdims.scale;
                 }
