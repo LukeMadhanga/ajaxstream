@@ -262,8 +262,8 @@
                 aypos = !1,
                 centl = (settings.width - thr.width) / 2,
                 centt = (settings.height - thr.height) / 2,
-                x = 0,
-                y = 0;
+                x = T.positionData.x,
+                y = T.positionData.y;
                 if (orient === 'x' || orient === '2d') {
                     if (thr.left >= tr.left) {
                         // We have been pulled to the left edge of the container
