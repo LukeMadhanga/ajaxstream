@@ -193,6 +193,60 @@
                     };
                 }
             }
+            
+            /**
+             * Recalculated the position data of this instance
+             * @param {float} x The x coordinate of the instance
+             * @param {float} y The y coordinate of the instance
+             * @param {string} lastmove [optional] The last action that was performed, e.g. a 'resize'
+             * @param {object(jQueryEvent)} jqueryevent [optional] jQuery event that may have led to this function being called
+             * @param {object(Event)} originalevent [optional] The original event that may have led to this function being called
+             */
+            T.recalculatePositionData = function (x, y, lastmove, jqueryevent, originalevent) {
+                lastmove = lastmove === undefined ? null : lastmove;
+                jqueryevent = jqueryevent === undefined ? null : jqueryevent;
+                originalevent = originalevent === undefined ? null : originalevent;
+                var th = T.s.thumb,
+                nr = th[0].getBoundingClientRect(),
+                isr = T.isresize,
+                r = T.rect ? T.rect : T[0].getBoundingClientRect(),
+                ax = isr ? nr.left - r.left : x,
+                ay = isr ? nr.top - r.top : y,
+                nrw = nr.width,
+                nrh = nr.height,
+                rw = r.width,
+                rh = r.height,
+                sb = T.s.bounds,
+                bb = sb.bottom,
+                bl = sb.left,
+                bt = sb.top,
+                br = sb.right;
+                if (T.s.round) {
+                    ax = Math.round(ax);
+                    ay = Math.round(ay);
+                    nrw = Math.round(nrw);
+                    nrh = Math.round(nrh);
+                    rw = Math.round(rw);
+                    rh = Math.round(rh);
+                }
+                T.positionData = {
+                    bounds: T.s.bounds,
+                    jqueryEvent: jqueryevent,
+                    originalEvent: originalevent,
+                    px: ax / (br - bl),
+                    py: ay / (bb - bt),
+                    lastMove: lastmove,
+                    thumbRatio: nrw / nrh,
+                    thumbHeight: nrh,
+                    thumbWidth: nrw,
+                    trackHeight: rh,
+                    trackWidth: rw,
+                    x: ax,
+                    x2: ax + nrw,
+                    y: ay,
+                    y2: ay + nrh
+                };
+            };
 
             /**
              * Reposition viewports
@@ -207,7 +261,9 @@
                 axpos = !1,
                 aypos = !1,
                 centl = (settings.width - thr.width) / 2,
-                centt = (settings.height - thr.height) / 2;
+                centt = (settings.height - thr.height) / 2,
+                x = 0,
+                y = 0;
                 if (orient === 'x' || orient === '2d') {
                     if (thr.left >= tr.left) {
                         // We have been pulled to the left edge of the container
@@ -217,7 +273,8 @@
                         axpos = settings.width - thr.width;
                     }
                     if (axpos !== !1) {
-                        th.css({left: center && centl > 0 ? centl : axpos});
+                        x = center && centl > 0 ? centl : axpos;
+                        th.css({left: x});
                     }
                 }
                 if (orient === 'y' || orient === '2d') {
@@ -229,9 +286,11 @@
                         aypos = settings.height - thr.height;
                     }
                     if (aypos !== !1) {
-                        th.css({top: center && centt > 0 ? centt : aypos});
+                        y = center && centt > 0 ? centt : aypos;
+                        th.css({top: y});
                     }
                 }
+                T.recalculatePositionData(x, y);
             };
 
             /**
@@ -389,40 +448,7 @@
                     }
                 }
                 
-                var nr = th[0].getBoundingClientRect(),
-                isr = T.isresize,
-                r = T.rect,
-                ax = isr ? nr.left - r.left : axpos,
-                ay = isr ? nr.top - r.top : aypos,
-                nrw = nr.width,
-                nrh = nr.height,
-                rw = r.width,
-                rh = r.height;
-                if (doround) {
-                    ax = Math.round(ax);
-                    ay = Math.round(ay);
-                    nrw = Math.round(nrw);
-                    nrh = Math.round(nrh);
-                    rw = Math.round(rw);
-                    rh = Math.round(rh);
-                }
-                T.positionData = {
-                    bounds: T.s.bounds,
-                    jqueryEvent: e,
-                    originalEvent: e.originalEvent,
-                    px: ax / (br - bl),
-                    py: ay / (bb - bt),
-                    lastMove: lastMove,
-                    thumbRatio: nrw / nrh,
-                    thumbHeight: nrh,
-                    thumbWidth: nrw,
-                    trackHeight: rh,
-                    trackWidth: rw,
-                    x: ax,
-                    x2: ax + nrw,
-                    y: ay,
-                    y2: ay + nrh
-                };
+                T.recalculatePositionData(axpos, aypos, lastMove, e, e.originalEvent);
             };
             
             T.find('div').mousedown(function(e) {
