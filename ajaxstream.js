@@ -260,6 +260,7 @@
                         index = changing ? i : T.currentlength,
                         filedata = {
                             aspectRatioLocked: !1,
+                            edited: !1,
                             index: index,
                             islegacy: !1,
                             mimetype: file.type,
@@ -744,6 +745,7 @@
              * The click handler for when one of the edit icons is clicked
              */
             T.iconClick = function() {
+                T = ZZ.currentstream;
                 var t = $(this),
                 eia = $('.EIconActive');
                 if (eia.data('for') === t.data('for')) {
@@ -991,7 +993,8 @@
                 T.setCropped64(elem(imgkey), upload, ZZ.images[imgkey], data, !0);
                 var ncropdata = {x: data.x, x2: data.x2, y: data.y, y2: data.y2};
                 if (upload.cropdata !== ncropdata) {
-                    T.existingedited = !0;
+                    upload.edited = !0;
+                    T.edited = !0;
                 }
                 upload.cropdata = ncropdata;
                 $('#AJSMain > div').addClass(AJSHidden);
@@ -1016,6 +1019,7 @@
                 });
                 // Set it as the current object
                 T = ZZ.streams[asid];
+                ZZ.currentstream = T;
 //                T.initBinding();
                 var $ajs = $('#AJS');
                 $ajs.show();
@@ -1042,6 +1046,7 @@
                 });
                 // Set it as the current object
                 T = ZZ.streams[asid];
+                ZZ.currentstream = T;
                 T.currentupload = index;
                 var $ajs = $('#AJS');
                 $ajs.show();
@@ -1367,6 +1372,7 @@
                     thumbHeight: nh,
                     thumbWidth: nw
                 }).streamBoundaries('reposition').positionData;
+                upload.edited = !0;
                 upload.canvasZoom = {height: nh * diffs.scale, width: nw * diffs.scale, scalePercent: px, 
                     x: pd.x * diffs.scale, y: pd.y * diffs.scale};
             }
@@ -1813,6 +1819,7 @@
                         round: !1,
                         scale9Grid: T.s.scale9Grid,
                         onBeforeUpdate: function () {
+                            T = ZZ.currentstream;
                             this.s.lockAspectRatio = T.uploads[T.currentupload].aspectRatioLocked;
                         },
                         onUpdate: function(e) {
@@ -1865,10 +1872,11 @@
                 if (T.uploads[0].mimetype.match('image/*')) {
                     // This upload is indeed an image
                     var img = new Image();
+                    var src = T.uploads[0].src;
                     img.onload = function () {
                         this.imageloaded = !0;
                     };
-                    img.src = T.uploads[0].src + '?cachekill=' + (new Date().getTime());
+                    img.src = src.match(/^blob\:/) ? src : src + '?cachekill=' + (new Date().getTime());
                     ZZ.images['AJSIMG_' + T.id + i] = img;
                 }
             }
@@ -2329,6 +2337,7 @@
      */
     window.ZZ = $.ajaxStream = {
         author: 'Luke Madhanga',
+        currentstream: null,
         images: {},
         license: 'MIT',
         streams: {},
