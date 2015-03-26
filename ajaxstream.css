@@ -626,7 +626,6 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {
     overflow:hidden;
     cursor: pointer;
     display: inline-block;
-    margin-right: 10px;
 }
 .AJSFP:hover > .AJSFPName {
     bottom: 0px;
@@ -652,6 +651,7 @@ img[id^='AJSIMG_'],canvas[id^='AJSIMG_'] {
     display: inline-block;
     box-sizing: border-box;
     position: relative;
+    vertical-align: top;
 }
 .AJSFormPrev {
     padding: 10px;

@@ -198,7 +198,7 @@
                     T.changing = !1;
                     return;
                 }
-                T.toload = filelist.length;
+                var len = T.toload = filelist.length;
                 T.event('fileselected', this, {originalEvent: e.originalEvent, files: filelist, toload: T.toload, original: T[0], 
                     stream: T, jQueryEvent: e, uploads: T.uploads});
                 if (fapi) {
@@ -208,15 +208,14 @@
                         }
                     }
                     if (T.toload <= 0) {
-                        streamConfirm(tx('Error'), {Close: ef},
-                            tx('There was an error during the upload: the file list is empty', tlen, T.s.maxFiles),
+                        streamConfirm(tx('Error'), {Close: ef}, tx('There was an error during the upload: the file list is empty'), 
                                 {nocancel: !0});
                     }
                     // We support the file api
                     if (T.changing === !1) {
                         // This is a new file
-                        var len = T.toload,
-                        tlen = len + T.uploads.length;
+                        len = T.toload;
+                        var tlen = len + T.uploads.length;
                         if (tlen > T.s.maxFiles) {
                             streamConfirm(tx('Maximum files exceeded'), {Close: ef},
                             tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles),
@@ -245,11 +244,11 @@
             /**
              * Process the uploaded file
              * @param {object(File)} file An item from a FileList object
-             * @param {int} i The index of this file in the uploads
+             * @param {int} changeid The index of this file in the uploads
              * @param {boolean} changing True if we are changing an existing file
              * @param {object(DOMElement)} target The original file input
              */
-            T.process = function(file, i, changing, target) {
+            T.process = function(file, changeid, changing, target) {
                 $('#AJSLoading').removeClass(AJSHidden);
                 if (is_a('blob', file) || is_a('file', file)) {
                     var fr = new FileReader(),
@@ -257,7 +256,7 @@
                     fr.onload = function(e) {
                         var blob = new Blob([e.target.result], {type: file.type}),
                         dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
-                        index = changing ? i : T.currentlength,
+                        index = changing ? changeid : null,
                         filedata = {
                             aspectRatioLocked: !1,
                             edited: !1,
@@ -274,21 +273,26 @@
                         }
                         if (processasimg) {
                             // If this is an image, then there is some extra information that we can add
-                            var img = new Image();
+                            var img = new Image(),
+                            canvas = document.createElement('canvas'),
+                            ctx = canvas.getContext('2d');
                             img.onload = function() {
-                                var image = this;
+                                var image = this,
+                                calculated = calcWidthHeight(img.width, img.height, T.s.maxWidth, T.s.maxHeight);
                                 image.imageloaded = !0;
                                 filedata.width = filedata.resizedWidth = filedata.croppedWidth = image.width;
                                 filedata.height = filedata.resizedHeight = filedata.croppedHeight = image.height;
                                 filedata.canvasWidth = filedata.canvasHeight = filedata.canvasZoom = null;
-                                filedata.newsrc = null;
                                 filedata.cropdata = {};
-                                ZZ.images['AJSIMG_' + T.id + index] = image;
+                                filedata.image = image;
+                                // Now get the base64 representation of the image
+                                canvas.width = calculated.width;
+                                canvas.height = calculated.height;
+                                T.multipass(canvas, ctx, img);
+                                filedata.newsrc = canvas.toDataURL(filedata.mimetype, 1);
                                 T.afterFileRead(filedata, changing, target);
                             };
                             img.onerror = function () {
-//                                streamConfirm(tx('Error'), {Close: ef}, tx('There was an error processing the selected file'), 
-//                                    {nocancel: !0});
                                 filedata.src = null;
                                 T.afterFileRead(filedata, changing, target);
                             };
@@ -321,13 +325,19 @@
              * @param {object(DOMElement)} target
              */
             T.afterFileRead = function(filedata, changing, target) {
-                var current = null;
+                var current = null,
+                index;
                 if (changing) {
-                    current = T.uploads[filedata.index];
-                    T.uploads[filedata.index] = filedata;
+                    index = filedata.index;
+                    current = T.uploads[index];
+                    T.uploads[index] = filedata;
                 } else {
-                    T.uploads[filedata.index] ? T.uploads[filedata.index] = filedata : T.uploads.push(filedata);
+                    index = T.uploads.length;
+                    filedata.index = index;
+                    T.uploads[index] = filedata;
                 }
+                ZZ.images['AJSIMG_' + T.id + index] = filedata.image;
+                delete filedata.image;
                 T.attemptProgression(target, filedata.index, current);
             };
 
@@ -705,7 +715,7 @@
             T.getCurr = function(gotoend) {
                 if (gotoend) {
                     T.currentupload = T.uploads.length - 1;
-                    return end(T.uploads);
+                    return T.uploads[T.currentupload];
                 } else {
                     if (T.addingmore) {
                         var res = end(T.uploads);
@@ -975,7 +985,6 @@
              * Save the custom fields information
              */
             T.saveInfo = function() {
-                // Save the customFields information
                 var upload = T.uploads[T.currentupload],
                 data = $('#AJSRITrack').streamBoundaries('getPositionData'),
                 imgkey = 'AJSIMG_' + T.id + T.currentupload,
@@ -1011,7 +1020,8 @@
              */
             function uploadBtnClick() {
                 // Get the id of this stream
-                var asid = $(this)[0].id.replace('AJSUploadBtn_', '');
+                var t = $(this),
+                asid = t[0].id.replace('AJSUploadBtn_', '');
                 T.event('beforeopen', this, {
                     elemid: asid.replace(/^\d+_(.*)$/, '$1'),
                     index: asid.replace(/^(\d+)_.*/, '$1'),
@@ -1028,6 +1038,10 @@
                 // Call the 'onopen' handler
                 T.event('open', T, {original: T[0], uploads: T.uploads, length: T.uploads.length});
                 toggleReadOnly(T.s.readonly);
+                if (t.hasClass('AJSFPBtn')) {
+                    // If this is the addmore button, open the window to select a file
+                    $('#AJSFile').click();
+                }
             }
 
             /**
@@ -1158,9 +1172,7 @@
 
                 $('#AJSAdd').unbind('click').click(function() {
                     // What to do when the add button is clicked
-                    if ((T.uploads.length + 1) > T.s.maxFiles) {
-
-                    } else {
+                    if ((T.uploads.length + 1) <= T.s.maxFiles) {
                         ajsfile.click();
                         T.addingmore = !0;
                     }
@@ -1743,12 +1755,9 @@
                     leng++;
                 }
                 if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles && T.uploads.length && fapi) {
-                    // For v2, Allow non fapi browsers to add more than one file
+                    // @todo For v2, Allow non fapi browsers to add more than one file
                     // Only show the plus if we can add more
-                    outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {
-                        style: 'height:' + iconHeight + 'px;line-height:' + iconHeight + 'px;', 
-                        'data-ajaxstreamid': T.c
-                    });
+                    outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {'data-ajaxstreamid': T.c});
                 }
                 if (!leng) {
                     outtext += cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
@@ -2348,7 +2357,7 @@
         setDefaults: function(opts) {
             defaults = $.extend(defaults, opts);
         },
-        version: '2.0.0'
+        version: '2.0.1'
     };
 
     function cHE() {
