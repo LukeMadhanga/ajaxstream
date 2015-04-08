@@ -78,7 +78,6 @@
             T.loaded = 0;
             T.uploads = [];
             T.addingmore = !1;
-            T.existingedited = !1;
             T.s = $.extend($.extend({}, defaults), opts);
 
             /**
@@ -280,14 +279,12 @@
                                 var image = this,
                                 calculated = calcWidthHeight(img.width, img.height, T.s.maxWidth, T.s.maxHeight);
                                 image.imageloaded = !0;
-                                filedata.width = filedata.resizedWidth = filedata.croppedWidth = image.width;
-                                filedata.height = filedata.resizedHeight = filedata.croppedHeight = image.height;
+                                canvas.width = filedata.width = filedata.resizedWidth = filedata.croppedWidth = calculated.width;
+                                canvas.height = filedata.height = filedata.resizedHeight = filedata.croppedHeight = calculated.height;
                                 filedata.canvasWidth = filedata.canvasHeight = filedata.canvasZoom = null;
                                 filedata.cropdata = {};
                                 filedata.image = image;
                                 // Now get the base64 representation of the image
-                                canvas.width = calculated.width;
-                                canvas.height = calculated.height;
                                 T.multipass(canvas, ctx, img);
                                 filedata.newsrc = canvas.toDataURL(filedata.mimetype, 1);
                                 T.afterFileRead(filedata, changing, target);
@@ -515,7 +512,7 @@
                 cur.croppedWidth = cur.resizedWidth = canvas.width = calculated.width;
                 cur.croppedHeight = cur.resizedHeight = canvas.height = calculated.height;
                 T.multipass(canvas, ctx, img);
-                if (cur.newupload || T.existingedited) {
+                if (cur.newupload || T.edited) {
                     // Only recalculate the base64 if something has happened to the file
                     cur.newsrc = canvas.toDataURL(cur.mimetype, T.s.quality);
                 }
