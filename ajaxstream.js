@@ -446,6 +446,15 @@
                 } else {
                     if (mastermime === 'image') {
                         canvas[0].src = src;
+                        if (!cur.width || !cur.height) {
+                            // The width and height have not yet been set for this image in the upload. This may be because the uploaded
+                            //  file is a gif
+                            canvas[0].onload = function () {
+                                cur.width = this.width;
+                                cur.height = this.height;
+                                cur.canvasWidth = cur.canvasHeight = null;
+                            };
+                        }
                     } else {
                         canvas.attr({'class': 'AJSMIMEIcons ' + getIconClass(mastermime, cur.mimetype)});
                         canvas.find('span').html(cur.name);
@@ -2354,7 +2363,7 @@
         setDefaults: function(opts) {
             defaults = $.extend(defaults, opts);
         },
-        version: '2.0.1'
+        version: '2.0.11'
     };
 
     function cHE() {
