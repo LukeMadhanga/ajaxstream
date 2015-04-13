@@ -1756,19 +1756,22 @@
                     }
                     inner += cHE.getDiv(curobj.name, null, 'AJSFPName');
                     outtext += cHE.getDiv(inner, 'AJSFP_' + T.id + '_' + curobj.index, 'AJSFP', {
-                        style: 'width:' + iconWidth + 'px;height:' + iconHeight + 'px;'
+                        style: 'width:' + iconWidth + 'px;height:' + iconHeight + 'px;',
+                        tabindex: 0
                     });
                     leng++;
                 }
                 if (T.s.maxFiles && u.length + 1 <= T.s.maxFiles && T.uploads.length && fapi) {
                     // @todo For v2, Allow non fapi browsers to add more than one file
                     // Only show the plus if we can add more
-                    outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {'data-ajaxstreamid': T.c});
+                    outtext += cHE.getSpan(null, 'AJSUploadBtn_' + T.id, 'asicons-plus AJSBtn AJSFPBtn', {'data-ajaxstreamid': T.c,
+                        tabindex: 0});
                 }
                 if (!leng) {
                     outtext += cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
                         'data-mandatory': !0, 
-                        'data-ajaxstreamid': T.c
+                        'data-ajaxstreamid': T.c,
+                        tabindex: 0
                     }) + cHE.getSpan(tx('Drop'), 'AJSDropZone_' + T.id, 'AJSInlineDrop ' + AJSHidden);
                 }
                 return outtext;
