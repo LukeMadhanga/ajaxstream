@@ -14,8 +14,6 @@
     defaults = {
         accept: ['.*'],
         allowFilters: !0,
-        defaultCropHeightPer: .8,
-        defaultCropWidthPer: .8,
         maxFileSize: 2097152,
         maxFiles: 1,
         iconPreviewHeight: 200,
@@ -44,8 +42,8 @@
         pathPrefix: '',
         quality: 1,
         readonly: !1,
-        showPreviewOnForm: !1,
         scale9Grid: !0,
+        showPreviewOnForm: !1,
         translateFunction: function(s) {
             for (var i = 1; i < arguments.length; i++) {
                 var re = new RegExp('\\{' + (i - 1) + '\\}', 'g');
@@ -65,12 +63,12 @@
                     $(this).ajaxStream(opts);
                 });
                 return T;
-            } else if (!T.length) {
-                // We have no objects return
+            } else if (!T.length || T.c) {
+                // There is either no object, or this object has already been initialized
                 return T;
             }
             var body = $('body');
-            T.c = count;
+            T.c = ++count;
             T.currentupload = null;
             T.currentlength = 0;
             T.changing = !1;
@@ -933,12 +931,10 @@
                     ri.css({maxWidth: parseFloat($(win).width()) - 20});
                     ajsri.css({width: 'auto'});
                     var r = ri[0].getBoundingClientRect(),
-                            w = r.width,
-                            h = r.height,
-                            dcwp = T.s.defaultCropWidthPer,
-                            dchp = T.s.defaultCropHeightPer;
-                    var tw = cd.x !== undefined ? cd.x2 - cd.x : w * (dcwp > 1 ? 1 : dcwp),
-                            th = cd.y !== undefined ? cd.y2 - cd.y : h * (dchp > 1 ? 1 : dchp);
+                    w = r.width,
+                    h = r.height,
+                    tw = cd.x !== undefined ? cd.x2 - cd.x : w,
+                    th = cd.y !== undefined ? cd.y2 - cd.y : h;
                     ajsritrack.streamBoundaries('updateOpts', {
                         width: w,
                         height: h,
@@ -954,8 +950,8 @@
                     });
                     ajsri.width(w);
                     var pd = ajsritrack.streamBoundaries('reposition', {
-                        x: cd.x || cd.x === 0 ? cd.x : ((1 - dcwp) / 2) * 100,
-                        y: cd.y || cd.y === 0 ? cd.y : ((1 - dchp) / 2) * 100
+                        x: cd.x || cd.x === 0 ? cd.x : 0,
+                        y: cd.y || cd.y === 0 ? cd.y : 0
                     }).positionData;
                     positionRBG(pd);
                     pd.rect = r;
@@ -1875,7 +1871,6 @@
 
             // Cache this object for later use
             ZZ.streams[T.id] = T;
-            count++;
             return T;
         },
         setUploadData: function (data, redraw) {
@@ -1913,7 +1908,7 @@
      */
     function getThis(elem) {
         var index = elem.data('ajaxstreamid');
-        return index||index===0 ? ZZ.streams[index + '_' + elem[0].id] : elem;
+        return index ? ZZ.streams[index + '_' + elem[0].id] : elem;
     }
 
     $.fn.ajaxStream = function(methodOrOpts) {
