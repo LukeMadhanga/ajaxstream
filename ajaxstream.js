@@ -1780,6 +1780,7 @@
                 // Auto executing
                 T.addClass(AJSHidden);
                 T.attr({'data-ajaxstreamid': T.c});
+                var warned = false;
                 if (exists($('#AJS_' + T[0].id))) {
                     var val = $('#AJS_' + T[0].id).val();
                     T.uploads = val.length ? json_decode(val, !0) : [];
@@ -1790,20 +1791,52 @@
                             // If we haven't got crop data, create an object in its place
                             u.cropdata = {};
                         }
-                        if (u.mimetype.match('image/*')) {
+                        if (!u.src) {
+                            var blob = base64ToBlob(u.newsrc, u.mimetype);
+                            if (blob) {
+                                u.src = URL.createObjectURL(blob);
+                            } else {
+                                // This is a malformed upload
+                                T.uploads.splice(i, 1);
+                                console.warn('Removed file: ' + u.name);
+                                if (!warned) {
+                                    streamConfirm(tx('There are bad files'));
+                                    warned = true;
+                                }
+                            }
+                        }
+                        if (!u.mimetype) {
+                            // No mimetype was supplied
+                            u.mimetype = 'application/octet-stream';
+                        } else if (u.mimetype.match('image/*')) {
                             // Add images to the images cache
                             var img = new Image();
                             img.onload = function () {
                                 this.imageloaded = !0;
                             };
-                            img.src = u.src + '?cachekill=' + (new Date().getTime());
+                            img.ajsindex = i;
+                            img.ajsname = u.name;
+                            img.onerror = function () {
+                                // As there was an error with the image, there is no way to continue safely. Remove the item from the 
+                                //  uploads array, and all references to it
+                                T.uploads = T.uploads.splice(this.ajsindex, 1);
+                                console.warn('Removed file: ' + this.ajsname);
+                                if (!warned) {
+                                    streamConfirm(tx('There are bad files'));
+                                    warned = true;
+                                }
+                                $('#ajaxstream_' + T[0].id).val(JSON.stringify(T.uploads));
+                                $('#AJSFP_' + T.id + '_' + this.ajsindex).remove();
+                                T.currentlength = T.uploads.length;
+                                delete ZZ.images['AJSIMG_' + T.id + this.ajsindex];
+                            };
+                            img.src = u.src.match(/^http(:?s)?\:/) ? u.src + '?cachekill=' + (new Date().getTime()) : u.src;
                             ZZ.images['AJSIMG_' + T.id + i] = img;
                         }
                     }
                 } else {
                     $(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden')).insertAfter(T[0]);
                 }
-
                 if (T.s.showPreviewOnForm) {
                     // The user wants to see a preivew on the form
                     $(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
@@ -1874,7 +1907,8 @@
             return T;
         },
         setUploadData: function (data, redraw) {
-            var T = this;
+            var T = this,
+            warned = false;
             if (is_a('string', data)) {
                 // The user has passed us a string, assume it is JSON data
                 data = json_decode(data);
@@ -1882,14 +1916,31 @@
             T.uploads = data ? object_to_array(data) : [];
             // Go through each of the uploads, making sure we have a cached an image for this upload
             for (var i = 0; i < T.uploads.length; i++) {
-                if (T.uploads[0].mimetype.match('image/*')) {
+                if (T.uploads[i].mimetype.match('image/*')) {
                     // This upload is indeed an image
-                    var img = new Image();
-                    var src = T.uploads[0].src;
+                    var img = new Image(),
+                    u = T.uploads[i],
+                    src = u.src;
                     img.onload = function () {
                         this.imageloaded = !0;
                     };
-                    img.src = src.match(/^blob\:/) ? src : src + '?cachekill=' + (new Date().getTime());
+                    img.ajsindex = i;
+                    img.ajsname = u.name;
+                    img.onerror = function () {
+                        // As there was an error with the image, there is no way to continue safely. Remove the item from the 
+                        //  uploads array, and all references to it
+                        T.uploads = T.uploads.splice(this.ajsindex, 1);
+                        console.warn('Removed file: ' + this.ajsname);
+                        if (!warned) {
+                            streamConfirm(tx('There are bad files'));
+                            warned = true;
+                        }
+                        $('#AJS_' + T[0].id).val(JSON.stringify(T.uploads));
+                        $('#AJSFP_' + T.id + '_' + this.ajsindex).remove();
+                        T.currentlength = T.uploads.length;
+                        delete ZZ.images['AJSIMG_' + T.id + this.ajsindex];
+                    };
+                    img.src = src.match(/^http(:?s)?\:/) ? src + '?cachekill=' + (new Date().getTime()) : src;
                     ZZ.images['AJSIMG_' + T.id + i] = img;
                 }
             }
@@ -1975,6 +2026,35 @@
         $('#AJSCropR').css({width: positionData.trackWidth - positionData.x2, height: positionData.trackHeight, right: 0, top: 0});
         $('#AJSCropB').css({width: xw, height: positionData.trackHeight - positionData.y2, left: positionData.x, bottom: 0});
         $('#AJSCropL').css({width: positionData.x, height: positionData.trackHeight, left: 0, top: 0});
+    }
+    
+    /**
+     * Make a blob from a base64 string
+     * @see http://goo.gl/r7c8IJ
+     * @param {string} base64 The base64 data
+     * @param {string} mimetype The mimetype of the data
+     * @param {int} slicesize The size of a chunk [defaults to 512]
+     * @returns {Blob} A blob or null if atob or Uint8Array is not a supported function
+     */
+    function base64ToBlob(base64, mimetype, slicesize) {
+        if (!window.atob || !window.Uint8Array) {
+            // The current browser doesn't have the atob function. Cannot continue
+            return null;
+        }
+        mimetype = mimetype || '';
+        slicesize = slicesize || 512;
+        var bytechars = atob(base64),
+        bytearrays = [];
+        for (var offset = 0; offset < bytechars.length; offset += slicesize) {
+            var slice = bytechars.slice(offset, offset + slicesize),
+            bytenums = new Array(slice.length);
+            for (var i = 0; i < slice.length; i++) {
+                bytenums[i] = slice.charCodeAt(i);
+            }
+            var bytearray = new Uint8Array(bytenums);
+            bytearrays[bytearrays.length] = bytearray;
+        }
+        return new Blob(bytearrays, {type: mimetype});
     }
 
     /**
@@ -2361,7 +2441,7 @@
         setDefaults: function(opts) {
             defaults = $.extend(defaults, opts);
         },
-        version: '2.0.11'
+        version: '2.0.12'
     };
 
     function cHE() {
