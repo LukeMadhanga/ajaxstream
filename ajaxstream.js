@@ -159,8 +159,8 @@
                 if (results.moved) {
                     // The file was successfully uploaded, so we can continue
                     if (results.mimetype.match('image/*')) {
-                        T.filedata.croppedWidth = T.filedata.resizedWidth = results.width;
-                        T.filedata.croppedHeight = T.filedata.resizedHeight = results.height;
+                        T.filedata.croppedWidth = T.filedata.resizedWidth = T.filedata.width = results.width;
+                        T.filedata.croppedHeight = T.filedata.resizedHeight = T.filedata.height = results.height;
                     }
                     T.currentlength++;
                     T.filedata.newsrc = results.location;
@@ -1835,18 +1835,18 @@
                         }
                     }
                 } else {
-                    $(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden')).insertAfter(T[0]);
+                    T.after(cHE.getInput('AJS_' + T[0].id, null, null, 'hidden'));
                 }
                 if (T.s.showPreviewOnForm) {
                     // The user wants to see a preivew on the form
-                    $(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
+                    T.after(cHE.getDiv(drawFormPreview(), 'AJSFormPrev_' + T.id, 'AJSFormPrev', {
                         style: 'height:' + T.s.iconPreviewHeight
-                    })).insertAfter(T[0]);
+                    }));
                 } else {
-                    $(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
+                    T.after(cHE.getSpan(tx('Upload'), 'AJSUploadBtn_' + T.id, 'AJSBtn', {
                         'data-mandatory': !0, 
                         'data-ajaxstreamid': T.c
-                    })).insertAfter(T[0]);
+                    }));
                 }
                 if (!exists($('#AJS'))) {
                     // Only create an ajaxStreamMain if one does not already exist in the DOM
@@ -2043,7 +2043,7 @@
         }
         mimetype = mimetype || '';
         slicesize = slicesize || 512;
-        var bytechars = atob(base64),
+        var bytechars = atob(base64.replace(/^data:[a-z09\/-]+;base64,/, '')),
         bytearrays = [];
         for (var offset = 0; offset < bytechars.length; offset += slicesize) {
             var slice = bytechars.slice(offset, offset + slicesize),
