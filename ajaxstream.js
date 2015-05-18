@@ -514,6 +514,23 @@
                     img = new Image();
                     img.src = cur.newsrc;
                 }
+                if (!img.width && !img.height) {
+                    img.onload = function () {
+                        imageToCanvasContinue(canvas, cur, img);
+                        winResize();
+                    };
+                } else {
+                    imageToCanvasContinue(canvas, cur, img);
+                }
+            }
+            
+            /**
+             * Continue rendering the image onto a canvas element
+             * @param {jqelem} canvas The canvas element
+             * @param {object(plain)} cur The object that describes the uploaded file we're working with
+             * @param {object(DOMElement)} img The img object for this uploaded file
+             */
+            function imageToCanvasContinue(canvas, cur, img) {
                 var calculated = calcWidthHeight(img.width, img.height, T.s.maxWidth, T.s.maxHeight),
                 ctx = canvas.getContext("2d");
                 cur.croppedWidth = cur.resizedWidth = canvas.width = calculated.width;
