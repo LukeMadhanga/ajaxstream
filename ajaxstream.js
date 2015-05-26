@@ -32,6 +32,7 @@
         onlegacyuploadfinish: ef,
         onlegacyuploadstart: ef,
         onopen: ef,
+        onsetuploaddata: ef,
         onsingleuploadfail: ef,
         onsingleuploadfinish: ef,
         onsingleuploadstart: ef,
@@ -1601,14 +1602,13 @@
                             // We have uploaded more files than we can handle
                             streamConfirm(tx('Maximum files exceeded'), {Close: ef},
                                 tx('You have selected {0} files but are only permitted to upload {1}', nlen, T.s.maxFiles),
-                                        {nocancel: !0});
+                                        {nocancel: true});
                             $('#AJSDropZone').addClass(AJSHidden);
                             $('#AJSLoading').addClass(AJSHidden);
                             return;
                         }
                         toggleDragPaste();
-                        var tdp = function () {toggleDragPaste(!0);},
-                        filesrc = dt.getData('url');
+                        var filesrc = dt.getData('url');
                         if (!filesrc) {
                             filesrc = dt.getData('text/plain');
                             if (!filesrc) {
@@ -1622,59 +1622,73 @@
                         }
                         T.event('filesloading', null, {original: T[0], toload: T.toload, loaded: T.loaded, uploads: T.uploads, 
                             stream: T});
-                        $.ajax({
-                            url: T.s.uploadScript + '?external=true',
-                            type: 'post',
-                            dataType: 'json',
-                            data: {filesrc: filesrc, uploaddir: T.s.uploadTo}
-                        }).done(function (e) {
-                            if (e.result === 'OK') {
-                                // The file has been successfully 'uploaded' to the server, add it to the upload list
-                                tdp();
-                                var len = T.uploads.length;
-                                e.data.index = len;
-                                T.uploads[len] = e.data;
-                                T.currentlength++;
-                                $('#AJSFile,#AJSFileLegacy').val(null);
-                                $('#AJSUploadSection').addClass(AJSHidden);
-                                $('#AJSImagePreview').removeClass(AJSHidden);
-                                T.toggleLR();
-                                T.event('filesloaded', null, {loaded: T.loaded, original: T[0], uploads: T.uploads, stream: T});
-                                T.changing = !1;
-                                T.toload = T.loaded = 0;
-                                if (e.data.mimetype.match('image/*')) {
-                                    var img = new Image();
-                                    img.onload = function () {
-                                        this.imageloaded = !0;
-                                        ZZ.images['AJSIMG_' + T.id + len] = img;
-                                        T.displayUpload(null, !0);
-                                    };
-                                    img.onerror = function () {
-                                        // The upload is corrupt, remove from the array
-                                        T.uploads.splice(len, 1);
-                                        streamConfirm(tx('Error'), {Close: tdp},
-                                            tx('There was an error processing the external file you dropped'), {nocancel: !0});
-                                    };
-                                    img.src = e.data.src + '?cachekill=' + (new Date().getTime());
-                                } else {
-                                    T.displayUpload(null, !0);
-                                }
-                            } else {
-                                streamConfirm(tx('Error'), {Close: tdp},
-                                    tx('There was an error processing the external file you dropped'), {nocancel: !0});
-                            }
-                        }).fail(function () {
-                            $('#AJSLoading').addClass(AJSHidden);
-                            streamConfirm(tx('Error'), {Close: tdp},
-                                tx('There was an error processing the external file you dropped'), {nocancel: !0});
-                        });
+                        getExternalFile(filesrc, tx('There was an error processing the external file you dropped'));
                         $('#AJSDropZone').addClass(AJSHidden);
                         return;
                     }
                     $('#AJSDropZone').addClass(AJSHidden);
-                    T.addingmore = !0;
+                    T.addingmore = true;
                     T.filechanged.call(null, {eventType: 'drop', originalEvent: e, target: {files: files}});
                 }
+            }
+            
+            /**
+             * Upload an external file
+             * @param {string} filesrc The path to the external file
+             * @param {string} errormsg The message to show if there are any errors during the process. WARNING: No value suppresses the 
+             *  error
+             */
+            function getExternalFile(filesrc, errormsg) {
+                var tdp = function () {toggleDragPaste(true);};
+                $.ajax({
+                    url: T.s.uploadScript + '?external=true',
+                    type: 'post',
+                    dataType: 'json',
+                    data: {filesrc: filesrc, uploaddir: T.s.uploadTo}
+                }).done(function (e) {
+                    if (e.result === 'OK') {
+                        // The file has been successfully 'uploaded' to the server, add it to the upload list
+                        tdp();
+                        var len = T.uploads.length;
+                        e.data.index = len;
+                        T.uploads[len] = e.data;
+                        T.currentlength++;
+                        $('#AJSFile,#AJSFileLegacy').val(null);
+                        $('#AJSUploadSection').addClass(AJSHidden);
+                        $('#AJSImagePreview').removeClass(AJSHidden);
+                        T.toggleLR();
+                        T.event('filesloaded', null, {loaded: T.loaded, original: T[0], uploads: T.uploads, stream: T});
+                        T.changing = false;
+                        T.toload = T.loaded = 0;
+                        if (e.data.mimetype.match('image/*')) {
+                            var img = new Image();
+                            img.onload = function () {
+                                this.imageloaded = true;
+                                ZZ.images['AJSIMG_' + T.id + len] = img;
+                                T.displayUpload(null, true);
+                            };
+                            img.onerror = function () {
+                                // The upload is corrupt, remove from the array
+                                T.uploads.splice(len, 1);
+                                if (errormsg) {
+                                    streamConfirm(tx('Error'), {Close: tdp}, errormsg, {nocancel: true});
+                                }
+                            };
+                            img.src = e.data.src + '?cachekill=' + (new Date().getTime());
+                        } else {
+                            T.displayUpload(null, true);
+                        }
+                    } else {
+                        if (errormsg) {
+                            streamConfirm(tx('Error'), {Close: tdp}, errormsg, {nocancel: true});
+                        }
+                    }
+                }).fail(function () {
+                    $('#AJSLoading').addClass(AJSHidden);
+                    if (errormsg) {
+                        streamConfirm(tx('Error'), {Close: tdp}, errormsg, {nocancel: true});
+                    }
+                });
             }
             
             /**
@@ -1683,14 +1697,32 @@
              */
             function paste (e) {
                 var clipboarditems = e.clipboardData.items,
-                len = clipboarditems.length;
+                len = clipboarditems.length,
+                filesrc = null,
+                error = false;
                 for (var i = 0; i < clipboarditems.length; i++) {
-                    if (!clipboarditems[i].type.match(T.s.accept)) {
+                    var ci = clipboarditems[i];
+                    if (!ci.type.match(T.s.accept)) {
+                        // This item is not valid for this upload
+                        if (ci.type.match(/^text\/html/) && ('getAsString' in ci)) {
+                            // The getAsString function exists in the ClipboardItem object and the data received is html
+                            ci.getAsString(function (s) {
+                                // Instead of trying to manually parse the HTML, let jQuery do it. There will be two elements created,
+                                //  the first being a meta tag and the latter being an image tag
+                                filesrc = $(s)[1].src;
+                                if (error && filesrc && filesrc.match(/^http(:?s)?\:\/\//)) {
+                                    // If the script encountered a problem later on but we have a valid looking filesrc, attempt an 
+                                    //  external upload
+                                    getExternalFile(filesrc);
+                                }
+                            });
+                        }
                         clipboarditems[i] = null;
                         len--;
                     }
                 }
                 if (!len) {
+                    error = true;
                     return;
                 }
                 T.toload = len;
@@ -1699,7 +1731,7 @@
                 if (tlen > T.s.maxFiles) {
                     streamConfirm(tx('Maximum files exceeded'), {Close: ef},
                     tx('You have selected {0} files but are only permitted to upload {1}', tlen, T.s.maxFiles),
-                            {nocancel: !0});
+                            {nocancel: true});
                     len = T.toload = T.s.maxFiles - T.uploads.length;
                 }
                 for (var i = 0; i < len; i++) {
@@ -1710,11 +1742,22 @@
                     }
                     var file = ci.getAsFile();
                     if (file && file.size) {
-                        T.addingmore = !0;
+                        T.addingmore = true;
                         T.process(file, i);
                     } else {
-                        streamConfirm(tx('Error'), {Close: ef},
-                        tx('There was an error processing the file you pasted'), {nocancel: !0});
+                        error = true;
+                        // The error message is weird because the system attempts to perform an external grab of a dropped file on failure
+                        // Getting the path of a dropped file is done using a callback, so by this point it cannot be guaranteed that
+                        //  the path will have been determined
+                        if (error && filesrc && filesrc.match(/^http(:?s)?\:\/\//)) {
+                            // The filesrc has been determined by this point
+                            error = false;
+                            getExternalFile(filesrc, tx('There was an error processing the file that you pasted'));
+                        } else {
+                            streamConfirm(tx('Error'), {Close: ef},
+                                tx("There was an error processing the pasted file. The system will try to get the file another way"), 
+                                {nocancel: true});
+                        }
                     }
                 }
             }
@@ -1966,6 +2009,7 @@
             if (redraw) {
                 T.redraw();
             }
+            T.event('setuploaddata', T, {original: T[0], uploads: T.uploads});
         }
     };
     
@@ -2458,7 +2502,7 @@
         setDefaults: function(opts) {
             defaults = $.extend(defaults, opts);
         },
-        version: '2.0.12'
+        version: '2.0.13'
     };
 
     function cHE() {
