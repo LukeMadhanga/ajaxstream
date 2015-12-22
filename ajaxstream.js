@@ -1,12 +1,19 @@
-(function($, win, count, document, Math) {
+(function($, window, count, document, Math) {
     
     var AJSHidden = 'AJSHidden',
     ef = function() {},
     pastable = 'onpaste' in document,
     draggable = 'draggable' in document.createElement('span'),
-    fapi = !!(win.Blob || win.File || win.FileList || win.FileReader),
+    fapi = !!(window.Blob || window.File || window.FileList || window.FileReader),
     canvtest = document.createElement('canvas'),
     canv = !!(canvtest.getContext && canvtest.getContext('2d')),
+    uselocalstorage = ('localStorage' in window) && (function () {
+        var ans = 0;
+        for(var x in window.localStorage) {
+            ans += (window.localStorage[x].length * 2).toFixed(2);
+        }
+        return ans < 4194304;
+    }()),
     constants = {
         VP_MAX_HEIGHT: 420
     },
@@ -14,6 +21,7 @@
     defaults = {
         accept: ['.*'],
         allowFilters: !0,
+        chunkSize: 1e6,
         maxFileSize: 2097152,
         maxFiles: 1,
         iconPreviewHeight: 200,
@@ -21,12 +29,14 @@
         maxHeight: 1024,
         maxWidth: 1024,
         onbeforeopen: ef,
+        onbeforestreamupload: ef,
         onclose: ef,
         onfilechanged: ef,
         onfilechanging: ef,
         onfileselected: ef,
         onfilesloaded: ef,
         onfilesloading: ef,
+        ongetuploadkey: ef,
         oninit: ef,
         onlegacyuploadfail: ef,
         onlegacyuploadfinish: ef,
@@ -44,6 +54,7 @@
         quality: 1,
         readonly: !1,
         scale9Grid: !0,
+        stream: !1,
         showPreviewOnForm: !1,
         translateFunction: function(s) {
             for (var i = 1; i < arguments.length; i++) {
@@ -79,7 +90,8 @@
                 loaded: 0,
                 s: $.extend($.extend({}, defaults), opts),
                 toload: 0,
-                uploads: []
+                uploads: [],
+                uploadBuffer: []
             },
             body = $('body');
 
@@ -132,7 +144,7 @@
                 };
                 T.data('ajs.ajaxstreamdata', data);
                 // Make a global reference to 'T' so that we can call it from our iFrame
-                win['AJSLegacy'] = ZZ.streams[data.id];
+                window['AJSLegacy'] = ZZ.streams[data.id];
                 $('#AJSLegacy').val(JSON.stringify({
                     maxsize: data.s.maxFileSize,
                     maxheight: data.s.maxHeight,
@@ -174,7 +186,7 @@
                     data.filedata.src = results.location;
                     data.event('legacyuploadfinish', T, {original: T[0], results: results, uploads: data.uploads});
                     data.afterFileRead(data.filedata, data.changing !== !1);
-                    win['AJSLegacy'] = null;
+                    window['AJSLegacy'] = null;
                     T.data('ajs.ajaxstreamdata', data);
                 } else {
                     // There was an error so alert the user
@@ -255,11 +267,15 @@
             data.process = function(file, changeid, changing, target) {
                 $('#AJSLoading').removeClass(AJSHidden);
                 if (is_a('blob', file) || is_a('file', file)) {
+                    if (data.s.stream) {
+                        data.beginStreamUpload(file, changeid, changing, target);
+                        return;
+                    }
                     var fr = new FileReader(),
                     processasimg = file.type.match('image/*') && file.type !== 'image/gif';
                     fr.onload = function(e) {
                         var blob = new Blob([e.target.result], {type: file.type}),
-                        dataURL = (win.URL || win.webkitURL).createObjectURL(blob),
+                        dataURL = (window.URL || window.webkitURL).createObjectURL(blob),
                         index = changing ? changeid : null,
                         filedata = {
                             aspectRatioLocked: !1,
@@ -306,13 +322,7 @@
                             data.afterFileRead(filedata, changing, target);
                         }
                     };
-                    fr.onerror = function(e) {
-                        var error = e.currentTarget.error;
-                        $('#AJSLoading').addClass(AJSHidden);
-                        streamConfirm(tx('Error'), {Close: ef}, tx('There was an error processing the selected file.\n\
-                        Make sure what you selected was indeed a file. Full details') + ': ' + error.message, {nocancel: !0});
-                        console.error(error.name + ': ' + error.message);
-                    };
+                    fr.onerror = fileReaderError;
                     // To get the base64 of a non-image, we need to use readAsDataURL
                     processasimg ? fr.readAsArrayBuffer(file) : fr.readAsDataURL(file);
                 } else {
@@ -320,6 +330,98 @@
                     streamConfirm(tx('Error'), {Close: ef}, tx('The selection is not a file'), {nocancel: !0});
                 }
             };
+            
+            data.beginStreamUpload = function (file, changeid, changing, target) {
+                var fr = new FileReader();
+                fr.onload = function(e) {
+                    // Get upload key
+                    data.uploadBuffer.push(new Uint8Array(e.target.result));
+                    var bufferkey = data.uploadBuffer.length - 1,
+                    uploadkey = data.getUploadKey(file);
+                    filedata = {
+                        aspectRatioLocked: !1,
+                        edited: !1,
+                        index: changing ? changeid : null,
+                        islegacy: !1,
+                        mimetype: file.type,
+                        name: file.name,
+                        newupload: !0,
+                        size: file.size,
+                        src: null
+                    };
+                    var bsu = {original: T[0], stream: T, uploads: data.uploads, file: file, uploadkey: uploadkey, bufferkey: bufferkey,
+                        filedata: filedata, changing: changing, target: target};
+                    if (data.event('beforestreamupload', this, bsu) === false) {
+                        return false;
+                    }
+                    data.streamUpload(bufferkey, 0, uploadkey, file.name);
+                    data.afterFileRead(filedata, changing, target);
+                };
+                fr.onerror = fileReaderError;
+                fr.readAsArrayBuffer(file);
+            };
+            
+            /**
+             * Get an upload key for this file
+             * @param {File} file The file being uploaded
+             * @returns {mixed} Either a sha1 string, or the result from a user specified key
+             */
+            data.getUploadKey = function (file) {
+                var userkey = data.event('getuploadkey', this, {original: T[0], stream: T, uploads: data.uploads, file: file});
+                if (userkey !== undefined && userkey !== null && userkey !== false && userkey !== true && userkey !== '') {
+                    // The designer has supplied what looks like a valid key
+                    return userkey;
+                }
+                return window.Sha1.hash(file.name + file.size + file.type + file.lastModified + new Date().getTime());
+            };
+            
+            /**
+             * Stream the upload
+             * @param {int} bufferkey The index of the upload being streamed in the buffer
+             * @param {int} startpoint  The point at which to start the buffer
+             * @param {string} uploadkey The upload key used to identify the stream
+             * @param {string} filename The name of the file being uploaded
+             */
+            data.streamUpload = function(bufferkey, startpoint, uploadkey, filename) {
+                var blob = new Blob([data.uploadBuffer[bufferkey].subarray(startpoint, startpoint + data.s.chunkSize)]),
+                fd = new FormData();
+                fd.append('stream', blob, filename);
+                fd.append('key', uploadkey);
+                fd.append('uploadto', data.s.uploadTo);
+                fd.append('bytesdone', startpoint + blob.size);
+                $.ajax({
+                    url: data.s.uploadScript + '?stream=1',
+                    type: 'post',
+                    contentType: false,
+                    processData: false,
+                    data: fd
+                }).done(function (e) {
+                    if (e.result === 'OK') {
+                        if (startpoint + data.s.chunkSize < data.uploadBuffer[bufferkey].length) {
+                            // The upload is not completed yet
+                            data.streamUpload(bufferkey, startpoint + data.s.chunkSize, uploadkey, filename);
+                        }
+                    } else {
+                        streamConfirm(tx('Oops!'), function () {}, tx('There was a problem streaming your file'));
+                        console.error(e.result);
+                    }
+                }).fail(function (e) {
+                    streamConfirm(tx('Oops!'), function () {}, tx('There was a problem streaming your file'));
+                    console.error(e.responseText);
+                });
+            };
+            
+            /**
+             * File reader error handler
+             * @param {Event} e
+             */
+            function fileReaderError(e) {
+                var error = e.currentTarget.error;
+                $('#AJSLoading').addClass(AJSHidden);
+                streamConfirm(tx('Error'), {Close: ef}, tx('There was an error processing the selected file.\n\
+                Make sure what you selected was indeed a file. Full details') + ': ' + error.message, {nocancel: !0});
+                console.error(error.name + ': ' + error.message);
+            }
 
             /**
              * What to do after the selected file has been read
@@ -957,7 +1059,7 @@
                     $('#AJSLoading').addClass(AJSHidden);
                     ajsri.show();
                     // Reset the widths so that the element can grow
-                    ri.css({maxWidth: parseFloat($(win).width()) - 20});
+                    ri.css({maxWidth: parseFloat($(window).width()) - 20});
                     ajsri.css({width: 'auto'});
                     var r = ri[0].getBoundingClientRect(),
                     w = r.width,
@@ -1196,8 +1298,8 @@
                 $('#AJSImagePreview').unbind('dbclick').dblclick(function() {
                     // Remove accidental double click highlighting on the image preview that may have occurred when cycling
                     //  through the uploaded files
-                    if (win.getSelection) {
-                        win.getSelection().removeAllRanges();
+                    if (window.getSelection) {
+                        window.getSelection().removeAllRanges();
                     } else if (document.selection) {
                         document.selection.empty();
                     }
@@ -2030,6 +2132,30 @@
             T.data('ajs.ajaxstreamdata', data);
         }
     };
+    
+    function log(key, value) {
+        if (uselocalstorage) {
+            localStorage.setItem(key, value);
+        } else {
+            // @todo Use cookies
+        }
+    }
+    
+    function getLogValue(key) {
+        if (uselocalstorage) {
+            window.localStorage.getItem(key);
+        } else {
+            // @todo Use cookies
+        }
+    }
+    
+    function removeFromLog(key) {
+        if (uselocalstorage) {
+            window.localStorage.setItem(key);
+        } else {
+            // @todo Use cookies
+        }
+    }
     
     /**
      * Calculate a new width and height for the uploaded file is one of the axis exceeds the maximum allowed
